@@ -1,0 +1,1521 @@
+<!-- Login / Welcome Page -->
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nocturnal OS - Welcome</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-container": "#00cbe6",
+                        "inverse-on-surface": "#303036",
+                        "background": "#131318",
+                        "on-tertiary-fixed-variant": "#713700",
+                        "on-tertiary-fixed": "#301400",
+                        "tertiary": "#ffb784",
+                        "on-secondary-container": "#00515d",
+                        "surface-tint": "#d2bbff",
+                        "tertiary-fixed": "#ffdcc6",
+                        "outline": "#958da1",
+                        "tertiary-container": "#a15100",
+                        "primary-fixed-dim": "#d2bbff",
+                        "on-secondary-fixed": "#001f25",
+                        "on-error-container": "#ffdad6",
+                        "on-primary": "#3f008e",
+                        "surface-container-high": "#2a292f",
+                        "outline-variant": "#4a4455",
+                        "primary-container": "#7c3aed",
+                        "on-surface": "#e4e1e9",
+                        "error": "#ffb4ab",
+                        "tertiary-fixed-dim": "#ffb784",
+                        "secondary-fixed": "#a2eeff",
+                        "surface-container-lowest": "#0e0e13",
+                        "inverse-primary": "#732ee4",
+                        "surface-container-low": "#1b1b20",
+                        "primary-fixed": "#eaddff",
+                        "on-error": "#690005",
+                        "on-secondary-fixed-variant": "#004e5a",
+                        "primary": "#d2bbff",
+                        "on-primary-fixed": "#25005a",
+                        "secondary-fixed-dim": "#2fd9f4",
+                        "surface-variant": "#35343a",
+                        "secondary": "#5de6ff",
+                        "on-background": "#e4e1e9",
+                        "surface-bright": "#39383e",
+                        "on-primary-container": "#ede0ff",
+                        "surface-container": "#1f1f25",
+                        "surface": "#131318",
+                        "on-secondary": "#00363e",
+                        "error-container": "#93000a",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "on-tertiary-container": "#ffe0cd",
+                        "on-surface-variant": "#ccc3d8",
+                        "inverse-surface": "#e4e1e9",
+                        "on-tertiary": "#4f2500",
+                        "surface-container-highest": "#35343a",
+                        "surface-dim": "#131318"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .parallax-bg {
+            background-size: cover;
+            background-position: center;
+            filter: blur(40px);
+            transform: scale(1.1);
+        }
+        .glass-panel {
+            background: rgba(19, 19, 24, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .orb-glow {
+            box-shadow: 0 0 80px 20px rgba(124, 58, 237, 0.4);
+        }
+        .text-glow {
+            text-shadow: 0 0 10px rgba(93, 230, 255, 0.5);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface selection:bg-primary/30 overflow-hidden">
+<!-- Background Layer (Collage Concept) -->
+<div class="fixed inset-0 z-0">
+<!-- Abstract Parallax Collage Layers -->
+<div class="absolute inset-0 opacity-40 flex flex-wrap gap-4 p-4 rotate-12 scale-150">
+<div class="w-1/3 h-96 rounded-xl bg-cover bg-center parallax-bg" data-alt="abstract flowing liquid texture with deep violet and sapphire blue hues mixing together in a soft gradient" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC44Rjf3zcISNtd--DNsuIfQ5_Qm6cPTlnrdwL1d1XtTh-yn_z2qrdXF6jpix_WWeIntTzuSdGiVB0j_uGF02elrG9KqTAc9UlC6q_6kdgo0GwCYoI6G7kM429sorT6uX6ZEXjElN6IrHM0XLsPj6f3Bmd9zVVhMNNkgDiG2mOfWjO5IdkYaYtuHDf2o0fbmOBy-oyGccsDdCMobJ-ep3feInLQhCT3IcsBTnwiHNVJRzAXoxXEpkXNfoTCUn3EHIMpTAdYVXBGlLdT')"></div>
+<div class="w-1/4 h-80 rounded-xl bg-cover bg-center parallax-bg" data-alt="vibrant neon teal and cyan digital art wallpaper with soft curves and ethereal lighting" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAcW1IsRLOCYyyTNMzU9mTOQnXFRtcvNP22avT1_af5akAMNVQJ3n0iEoMvQ6s-hcp25dNBPCYYaLtrVtudzpmX7tj-QIIYFRYgy_v2MWImK9FzbFcGntOrhxYxA9TbUbS3wU9kJtsl-9WmK6SHUUff3_MZbqTrbcLTJ9PDPwdWs8U6WZU0oKMu8B_uUKDXeGFW16XjP5NHW4TcPvkkCHlB5YQNifGX-Ox5aXgWW_ln1j0xcaMJXoDQ5SFak_mNHcrG80hP9qeoBUfL')"></div>
+<div class="w-1/2 h-[500px] rounded-xl bg-cover bg-center parallax-bg" data-alt="dark atmospheric background with subtle purple lens flare and soft grain texture" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB7pecx2dL7YUs9XFIBHTz84RAyMym3qpKKr0cUNP7Wtk5eXcTHeCi9dKKdhGhXGT-5x0suZpLh6oYIGnchCnxXz2nHHHcoyRNxCh2rG5zD6meFBvjPDA0LyOIzEPKBVSHAqTk2wLYVtlB7MvJjtO6BsuYvdawD8qWnkrnKgDR-hWy5wQUnwXj_HuYXEhn1Oy9lmX-seAzbSJUVQKPURj9Hfwz19s_NppyYdW7A9x_OI32w3eB0lyBbu3H-vVcMz0CXxW9ZaK5rSyJa')"></div>
+<div class="w-1/3 h-72 rounded-xl bg-cover bg-center parallax-bg" data-alt="dreamy aesthetic wallpaper featuring a blur of cosmic dust and distant stars in deep indigo" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCpxPdQodSaxK3HzKpz6dghY2rnEzNhKtnUj9Z1OEnLq5-OrwnoQBVmbYaGlbSAbukOoVyI5lAows892R8gDUFM9EbUY67KEYhVk0Yt9tWjiSP9SOJG2vS3Ar0NkscjJ_E9x5oGOKwQHaAOz2ORNYspTtrPwd4yyDcVGkX473KYDEi-UD0ZP3p1uqt7LQ_i2nYA7HNgBC15ku0YbxIEQoJCAW8hFyVSfquZpLcND6tODu0U8kzmaW2xA1m3z6eJCxhmEs08RqwIrgQ-')"></div>
+</div>
+<!-- Dark Translucent Overlay -->
+<div class="absolute inset-0 bg-[#05050f]/75 backdrop-blur-[2px]"></div>
+</div>
+<!-- Main Viewport Layout -->
+<main class="relative z-10 flex flex-col items-center justify-between min-h-screen p-6 pb-0">
+<!-- Top Section: Branding -->
+<div class="mt-20 text-center flex flex-col items-center gap-8">
+<!-- Pulsing Orb Icon -->
+<div class="w-32 h-32 rounded-full bg-primary-container orb-glow flex items-center justify-center relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
+<div class="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full border border-white/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-4xl" data-weight="fill">blur_on</span>
+</div>
+</div>
+<div class="space-y-2">
+<h1 class="font-headline font-bold text-5xl md:text-7xl tracking-tighter text-white">
+                    NOCTURNAL
+                </h1>
+<p class="font-body text-secondary font-medium tracking-[0.2em] text-sm md:text-base text-glow">
+                    Your phone. Your way.
+                </p>
+</div>
+</div>
+<!-- Middle Section: Breathing Room -->
+<div class="flex-1 min-h-[100px]"></div>
+<!-- Bottom Section: Frosted Action Card -->
+<div class="w-full max-w-lg mb-4 animate-slide-up">
+<div class="glass-panel rounded-t-lg p-8 pb-10 flex flex-col items-center space-y-6 shadow-2xl border-t border-x border-white/10">
+<div class="w-full flex flex-col items-center space-y-1">
+<span class="text-on-surface-variant font-body text-sm tracking-wide opacity-80">Welcome back</span>
+</div>
+<!-- Google Button -->
+<button class="w-full h-14 bg-white hover:bg-white/90 active:scale-95 transition-all duration-200 rounded-[16px] flex items-center justify-center gap-3 px-4 shadow-lg group">
+<svg class="w-6 h-6" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335"></path>
+</svg>
+<span class="text-[#131318] font-body font-bold text-base">Sign in with Google</span>
+</button>
+<p class="text-[11px] text-on-surface-variant text-center max-w-[280px] leading-relaxed opacity-60">
+                    By continuing you agree to our <a class="underline hover:text-white" href="#">Terms</a> &amp; <a class="underline hover:text-white" href="#">Privacy Policy</a>
+</p>
+</div>
+</div>
+</main>
+<!-- Custom Animation Keyframes (CSS embedded in head style but reinforced here) -->
+<style>
+        @keyframes slide-up {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up {
+            animation: slide-up 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        
+        @keyframes orb-pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
+        }
+        .orb-glow {
+            animation: orb-pulse 4s ease-in-out infinite;
+        }
+
+        /* Responsive adjustments for mobile height */
+        @media (max-height: 700px) {
+            .mt-20 { margin-top: 2.5rem; }
+            .w-32 { width: 6rem; height: 6rem; }
+            .text-5xl { font-size: 2.5rem; line-height: 1; }
+        }
+    </style>
+</body></html>
+
+<!-- Home Screen - List View -->
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-container": "#00cbe6",
+                        "inverse-on-surface": "#303036",
+                        "background": "#131318",
+                        "on-tertiary-fixed-variant": "#713700",
+                        "on-tertiary-fixed": "#301400",
+                        "tertiary": "#ffb784",
+                        "on-secondary-container": "#00515d",
+                        "surface-tint": "#d2bbff",
+                        "tertiary-fixed": "#ffdcc6",
+                        "outline": "#958da1",
+                        "tertiary-container": "#a15100",
+                        "primary-fixed-dim": "#d2bbff",
+                        "on-secondary-fixed": "#001f25",
+                        "on-error-container": "#ffdad6",
+                        "on-primary": "#3f008e",
+                        "surface-container-high": "#2a292f",
+                        "outline-variant": "#4a4455",
+                        "primary-container": "#7c3aed",
+                        "on-surface": "#e4e1e9",
+                        "error": "#ffb4ab",
+                        "tertiary-fixed-dim": "#ffb784",
+                        "secondary-fixed": "#a2eeff",
+                        "surface-container-lowest": "#0e0e13",
+                        "inverse-primary": "#732ee4",
+                        "surface-container-low": "#1b1b20",
+                        "primary-fixed": "#eaddff",
+                        "on-error": "#690005",
+                        "on-secondary-fixed-variant": "#004e5a",
+                        "primary": "#d2bbff",
+                        "on-primary-fixed": "#25005a",
+                        "secondary-fixed-dim": "#2fd9f4",
+                        "surface-variant": "#35343a",
+                        "secondary": "#5de6ff",
+                        "on-background": "#e4e1e9",
+                        "surface-bright": "#39383e",
+                        "on-primary-container": "#ede0ff",
+                        "surface-container": "#1f1f25",
+                        "surface": "#131318",
+                        "on-secondary": "#00363e",
+                        "error-container": "#93000a",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "on-tertiary-container": "#ffe0cd",
+                        "on-surface-variant": "#ccc3d8",
+                        "inverse-surface": "#e4e1e9",
+                        "on-tertiary": "#4f2500",
+                        "surface-container-highest": "#35343a",
+                        "surface-dim": "#131318"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+            background-color: #131318;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .glass-item {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface selection:bg-primary/30">
+<!-- Background Layer -->
+<div class="fixed inset-0 z-[-1] overflow-hidden">
+<div class="absolute inset-0 bg-cover bg-center scale-110 blur-xl opacity-40" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCSBgEtSvkVZ9QpZ0CpQBDGLwgprLz7-Ff1Lj2qK0qrv9kT9q2eYVjzxeGOKvXxqBrMI7nCe1gVsfWbyg54hG3qq2LiCwzK9jHKfYwqd_1D_Tgh5MIwrDQiX83K2P1_5izCJKmgPmw4BfWTgf_Ux4mOTUVkZucCZi61v4sThWJcnsum2d9xapUnYQTyQkTDd-hWoMDLSU9NmMtOe9T0Ek5Qlsj_oG2cfDRM7TYA323t1jnALCzMEcyPUZRzZwZXvTDA6mqUxS4diEvW')">
+</div>
+<div class="absolute inset-0 bg-gradient-to-b from-black/20 via-surface/60 to-surface"></div>
+</div>
+<!-- Top Status Bar -->
+<header class="w-full pt-4 px-6 flex justify-between items-center text-violet-400 dark:text-violet-300 font-['Space_Grotesk'] font-bold tracking-tight">
+<div class="flex items-center gap-2">
+<span class="text-sm">12:45</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[18px]">battery_charging_full</span>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col px-6 pt-12 h-[calc(100vh-64px)]">
+<!-- Hero Clock & Weather Section (Preserved) -->
+<div class="w-full flex justify-between items-start mb-10 shrink-0">
+<div class="flex flex-col">
+<h1 class="text-[64px] font-headline font-bold leading-none text-white tracking-tighter">
+                    12:45
+                </h1>
+<p class="text-on-surface-variant font-label text-base tracking-widest mt-1">
+                    TUESDAY, MAY 24
+                </p>
+</div>
+<div class="flex items-center gap-3 bg-surface-container-high/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/5">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">partly_cloudy_day</span>
+<div class="flex flex-col leading-none">
+<span class="text-lg font-headline font-bold text-white">24°</span>
+<span class="text-[10px] text-secondary font-bold uppercase tracking-tighter">Clear</span>
+</div>
+</div>
+</div>
+<!-- Vertical Scrollable App List -->
+<div class="flex-1 overflow-y-auto no-scrollbar pb-12">
+<!-- Star/Favorites Category -->
+<div class="mb-8">
+<div class="flex items-center gap-2 mb-4 px-2">
+<span class="material-symbols-outlined text-secondary text-lg" style="font-variation-settings: 'FILL' 1;">star</span>
+<h2 class="text-secondary font-headline font-bold text-sm tracking-widest uppercase">Favorites</h2>
+</div>
+<div class="space-y-3">
+<!-- Favorite 1 -->
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px] active:scale-[0.98] transition-transform">
+<div class="w-12 h-12 rounded-[12px] bg-gradient-to-br from-violet-500/20 to-violet-700/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-2xl">mail</span>
+</div>
+<span class="text-base font-medium text-white">Mail</span>
+</div>
+<!-- Favorite 2 -->
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px] active:scale-[0.98] transition-transform">
+<div class="w-12 h-12 rounded-[12px] bg-gradient-to-br from-secondary/20 to-secondary-container/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-2xl" style="font-variation-settings: 'FILL' 1;">camera</span>
+</div>
+<span class="text-base font-medium text-white">Camera</span>
+</div>
+<!-- Favorite 3 -->
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px] active:scale-[0.98] transition-transform">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/60 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-2xl" style="font-variation-settings: 'FILL' 1;">call</span>
+</div>
+<span class="text-base font-medium text-white">Phone</span>
+</div>
+<!-- Favorite 4 -->
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px] active:scale-[0.98] transition-transform">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/60 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-2xl" style="font-variation-settings: 'FILL' 1;">language</span>
+</div>
+<span class="text-base font-medium text-white">Browser</span>
+</div>
+<!-- Favorite 5 -->
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px] active:scale-[0.98] transition-transform">
+<div class="w-12 h-12 rounded-[12px] bg-gradient-to-br from-primary-container/30 to-primary/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
+</div>
+<span class="text-base font-medium text-white">Messages</span>
+</div>
+</div>
+</div>
+<!-- Alphabetical Sections -->
+<!-- A -->
+<div class="mb-6">
+<div class="sticky top-0 bg-transparent py-2 px-2 z-10 backdrop-blur-sm">
+<h2 class="text-secondary font-headline font-bold text-xl">A</h2>
+</div>
+<div class="space-y-3 mt-2">
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px]">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant text-2xl">music_note</span>
+</div>
+<span class="text-base font-medium text-white">Audio</span>
+</div>
+</div>
+</div>
+<!-- C -->
+<div class="mb-6">
+<div class="sticky top-0 bg-transparent py-2 px-2 z-10 backdrop-blur-sm">
+<h2 class="text-secondary font-headline font-bold text-xl">C</h2>
+</div>
+<div class="space-y-3 mt-2">
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px]">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant text-2xl">calendar_month</span>
+</div>
+<span class="text-base font-medium text-white">Calendar</span>
+</div>
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px]">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant text-2xl">cloud</span>
+</div>
+<span class="text-base font-medium text-white">Cloud Drive</span>
+</div>
+</div>
+</div>
+<!-- F -->
+<div class="mb-6">
+<div class="sticky top-0 bg-transparent py-2 px-2 z-10 backdrop-blur-sm">
+<h2 class="text-secondary font-headline font-bold text-xl">F</h2>
+</div>
+<div class="space-y-3 mt-2">
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px]">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant text-2xl">folder_shared</span>
+</div>
+<span class="text-base font-medium text-white">Files</span>
+</div>
+</div>
+</div>
+<!-- H -->
+<div class="mb-6">
+<div class="sticky top-0 bg-transparent py-2 px-2 z-10 backdrop-blur-sm">
+<h2 class="text-secondary font-headline font-bold text-xl">H</h2>
+</div>
+<div class="space-y-3 mt-2">
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px]">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant text-2xl">health_and_safety</span>
+</div>
+<span class="text-base font-medium text-white">Health</span>
+</div>
+</div>
+</div>
+<!-- I -->
+<div class="mb-6">
+<div class="sticky top-0 bg-transparent py-2 px-2 z-10 backdrop-blur-sm">
+<h2 class="text-secondary font-headline font-bold text-xl">I</h2>
+</div>
+<div class="space-y-3 mt-2">
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px]">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant text-2xl">lightbulb</span>
+</div>
+<span class="text-base font-medium text-white">Ideas</span>
+</div>
+</div>
+</div>
+<!-- M -->
+<div class="mb-6">
+<div class="sticky top-0 bg-transparent py-2 px-2 z-10 backdrop-blur-sm">
+<h2 class="text-secondary font-headline font-bold text-xl">M</h2>
+</div>
+<div class="space-y-3 mt-2">
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px]">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant text-2xl">map</span>
+</div>
+<span class="text-base font-medium text-white">Maps</span>
+</div>
+</div>
+</div>
+<!-- P -->
+<div class="mb-6">
+<div class="sticky top-0 bg-transparent py-2 px-2 z-10 backdrop-blur-sm">
+<h2 class="text-secondary font-headline font-bold text-xl">P</h2>
+</div>
+<div class="space-y-3 mt-2">
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px]">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant text-2xl">sports_esports</span>
+</div>
+<span class="text-base font-medium text-white">Play</span>
+</div>
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px]">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant text-2xl">event</span>
+</div>
+<span class="text-base font-medium text-white">Plan</span>
+</div>
+</div>
+</div>
+<!-- S -->
+<div class="mb-6">
+<div class="sticky top-0 bg-transparent py-2 px-2 z-10 backdrop-blur-sm">
+<h2 class="text-secondary font-headline font-bold text-xl">S</h2>
+</div>
+<div class="space-y-3 mt-2">
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px]">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant text-2xl">auto_graph</span>
+</div>
+<span class="text-base font-medium text-white">Stocks</span>
+</div>
+</div>
+</div>
+<!-- T -->
+<div class="mb-6">
+<div class="sticky top-0 bg-transparent py-2 px-2 z-10 backdrop-blur-sm">
+<h2 class="text-secondary font-headline font-bold text-xl">T</h2>
+</div>
+<div class="space-y-3 mt-2">
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px]">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant text-2xl">grid_view</span>
+</div>
+<span class="text-base font-medium text-white">Tools</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Indicator -->
+<div class="fixed bottom-4 left-0 right-0 flex justify-center pointer-events-none">
+<div class="w-12 h-1.5 rounded-full bg-white/20"></div>
+</div>
+</body></html>
+
+<!-- Home Screen with Extended A-Z List -->
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-container": "#00cbe6",
+                        "inverse-on-surface": "#303036",
+                        "background": "#0A0A0F",
+                        "on-tertiary-fixed-variant": "#713700",
+                        "on-tertiary-fixed": "#301400",
+                        "tertiary": "#ffb784",
+                        "on-secondary-container": "#00515d",
+                        "surface-tint": "#d2bbff",
+                        "tertiary-fixed": "#ffdcc6",
+                        "outline": "#958da1",
+                        "tertiary-container": "#a15100",
+                        "primary-fixed-dim": "#d2bbff",
+                        "on-secondary-fixed": "#001f25",
+                        "on-error-container": "#ffdad6",
+                        "on-primary": "#3f008e",
+                        "surface-container-high": "#2a292f",
+                        "outline-variant": "#4a4455",
+                        "primary-container": "#7c3aed",
+                        "on-surface": "#e4e1e9",
+                        "error": "#ffb4ab",
+                        "tertiary-fixed-dim": "#ffb784",
+                        "secondary-fixed": "#a2eeff",
+                        "surface-container-lowest": "#0e0e13",
+                        "inverse-primary": "#732ee4",
+                        "surface-container-low": "#1b1b20",
+                        "primary-fixed": "#eaddff",
+                        "on-error": "#690005",
+                        "on-secondary-fixed-variant": "#004e5a",
+                        "primary": "#d2bbff",
+                        "on-primary-fixed": "#25005a",
+                        "secondary-fixed-dim": "#2fd9f4",
+                        "surface-variant": "#35343a",
+                        "secondary": "#5de6ff",
+                        "on-background": "#e4e1e9",
+                        "surface-bright": "#39383e",
+                        "on-primary-container": "#ede0ff",
+                        "surface-container": "#1f1f25",
+                        "surface": "#0A0A0F",
+                        "on-secondary": "#00363e",
+                        "error-container": "#93000a",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "on-tertiary-container": "#ffe0cd",
+                        "on-surface-variant": "#ccc3d8",
+                        "inverse-surface": "#e4e1e9",
+                        "on-tertiary": "#4f2500",
+                        "surface-container-highest": "#35343a",
+                        "surface-dim": "#0A0A0F"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+            background-color: #0A0A0F;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .glass-item {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .widget-placeholder {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(8px);
+            border: 1px dashed rgba(255, 255, 255, 0.15);
+        }
+        .alpha-index-item {
+            height: 1.4em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface selection:bg-primary/30">
+<!-- Background Layer -->
+<div class="fixed inset-0 z-[-1] overflow-hidden">
+<div class="absolute inset-0 bg-cover bg-center scale-110 blur-xl opacity-40" style="background-image: url('https://lh3.googleusercontent.com/aida-public/ALi7E7E_YQJ7Z4I17rS-Tq5L2lT_Gv9MvR6QGZ6S-v-W3j3l2rZ3k4v5w6x7y8z9a0b1c2d3e4f5g6h7i8j9k0l1m2n3o4p5q6r7s8t9u0v1w2x3y4z5a6b7c8d9e0f1g2h3i4j5k6l7m8n9o0p1q2r3s4t5u6v7w8x9y0z1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t1u2v3w4x5y6z7a8b9c0d1e2f3g4h5i6j7k8l9m0n1o2p3q4r5s6t7u8v9w0x1y2z3a4b5c6d7e8f9g0h1i2j3k4l5m6n7o8p9q0r1s2t3u4v5w6x7y8z9=s2048')">
+</div>
+<div class="absolute inset-0 bg-gradient-to-b from-black/40 via-background/60 to-background"></div>
+</div>
+<!-- Top Status Bar -->
+<header class="w-full pt-4 px-6 flex justify-between items-center text-primary/80 font-headline font-bold tracking-tight">
+<div class="flex items-center gap-2">
+<span class="text-sm">12:45</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[18px]">battery_charging_full</span>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col px-6 pt-12 h-[calc(100vh-64px)] relative">
+<!-- Hero Clock & Weather Section -->
+<div class="w-full flex justify-between items-start mb-8 shrink-0">
+<div class="flex flex-col">
+<h1 class="text-[64px] font-headline font-bold leading-none text-white tracking-tighter">
+                    12:45
+                </h1>
+<p class="text-on-surface-variant font-label text-base tracking-widest mt-1">
+                    TUESDAY, MAY 24
+                </p>
+</div>
+<div class="flex items-center gap-3 bg-surface-container-high/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/5">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">partly_cloudy_day</span>
+<div class="flex flex-col leading-none">
+<span class="text-lg font-headline font-bold text-white">24°</span>
+<span class="text-[10px] text-secondary font-bold uppercase tracking-tighter">Clear</span>
+</div>
+</div>
+</div>
+<!-- Add Widget Section - Increased height to push content down -->
+<div class="shrink-0 mb-6">
+<button class="w-full h-32 widget-placeholder rounded-2xl flex flex-col items-center justify-center gap-2 active:scale-[0.97] transition-all hover:bg-white/5">
+<span class="material-symbols-outlined text-primary/60 text-2xl">add_circle</span>
+<span class="text-[10px] font-headline font-bold uppercase tracking-[0.2em] text-on-surface-variant">Add Widget</span>
+</button>
+</div>
+<!-- Minimal Control Bar / Favorites Anchor -->
+<div class="flex items-center justify-between px-2 shrink-0 relative mb-2" id="favorites-anchor">
+<div class="flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<!-- Alphabet Filter Sidelist (Aligned to star icon) -->
+<!-- Adjusted top positioning to be parallel to the Favorites star icon -->
+<div class="fixed right-2 bottom-12 z-20 flex flex-col items-center justify-between py-4 text-on-surface-variant/40 top-[380px]">
+<div class="alpha-index-item text-primary font-bold flex-1 text-[11px]">#</div>
+<div class="alpha-index-item text-primary font-bold flex-1 text-[11px]">A</div>
+<div class="alpha-index-item flex-1 text-[11px]">B</div>
+<div class="alpha-index-item text-primary font-bold flex-1 text-[11px]">C</div>
+<div class="alpha-index-item flex-1 text-[11px]">D</div>
+<div class="alpha-index-item flex-1 text-[11px]">E</div>
+<div class="alpha-index-item text-primary font-bold flex-1 text-[11px]">F</div>
+<div class="alpha-index-item flex-1 text-[11px]">G</div>
+<div class="alpha-index-item flex-1 text-[11px]">H</div>
+<div class="alpha-index-item flex-1 text-[11px]">I</div>
+<div class="alpha-index-item flex-1 text-[11px]">J</div>
+<div class="alpha-index-item flex-1 text-[11px]">K</div>
+<div class="alpha-index-item flex-1 text-[11px]">L</div>
+<div class="alpha-index-item flex-1 text-[11px]">M</div>
+<div class="alpha-index-item flex-1 text-[11px]">N</div>
+<div class="alpha-index-item flex-1 text-[11px]">O</div>
+<div class="alpha-index-item flex-1 text-[11px]">P</div>
+<div class="alpha-index-item flex-1 text-[11px]">Q</div>
+<div class="alpha-index-item flex-1 text-[11px]">R</div>
+<div class="alpha-index-item flex-1 text-[11px]">S</div>
+<div class="alpha-index-item flex-1 text-[11px]">T</div>
+<div class="alpha-index-item flex-1 text-[11px]">U</div>
+<div class="alpha-index-item flex-1 text-[11px]">V</div>
+<div class="alpha-index-item flex-1 text-[11px]">W</div>
+<div class="alpha-index-item flex-1 text-[11px]">X</div>
+<div class="alpha-index-item flex-1 text-[11px]">Y</div>
+<div class="alpha-index-item flex-1 text-[11px]">Z</div>
+</div>
+<!-- Vertical Scrollable App List -->
+<div class="flex-1 overflow-y-auto no-scrollbar pb-24 pr-6">
+<!-- Favorites Section -->
+<div class="mb-8">
+<div class="space-y-3">
+<!-- Favorite 1 -->
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px] active:scale-[0.98] transition-transform">
+<div class="w-12 h-12 rounded-[12px] bg-gradient-to-br from-violet-500/20 to-violet-700/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-2xl">mail</span>
+</div>
+<span class="text-base font-medium text-white">Mail</span>
+</div>
+<!-- Favorite 2 -->
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px] active:scale-[0.98] transition-transform">
+<div class="w-12 h-12 rounded-[12px] bg-gradient-to-br from-secondary/20 to-secondary-container/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-2xl" style="font-variation-settings: 'FILL' 1;">camera</span>
+</div>
+<span class="text-base font-medium text-white">Camera</span>
+</div>
+<!-- Favorite 3 -->
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px] active:scale-[0.98] transition-transform">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/60 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-2xl" style="font-variation-settings: 'FILL' 1;">call</span>
+</div>
+<span class="text-base font-medium text-white">Phone</span>
+</div>
+<!-- Favorite 4 -->
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px] active:scale-[0.98] transition-transform">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/60 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-2xl" style="font-variation-settings: 'FILL' 1;">language</span>
+</div>
+<span class="text-base font-medium text-white">Browser</span>
+</div>
+<!-- Favorite 5 -->
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px] active:scale-[0.98] transition-transform">
+<div class="w-12 h-12 rounded-[12px] bg-gradient-to-br from-primary-container/30 to-primary/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
+</div>
+<span class="text-base font-medium text-white">Messages</span>
+</div>
+</div>
+</div>
+<!-- Alphabetical Sections - Now pushed down by the larger widget area -->
+<!-- A -->
+<div class="mb-6 pt-4">
+<div class="sticky top-0 bg-background/5 backdrop-blur-md py-2 px-2 z-10">
+<h2 class="text-secondary font-headline font-bold text-xl">A</h2>
+</div>
+<div class="space-y-3 mt-2">
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px]">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant text-2xl">music_note</span>
+</div>
+<span class="text-base font-medium text-white">Audio</span>
+</div>
+</div>
+</div>
+<!-- C -->
+<div class="mb-6">
+<div class="sticky top-0 bg-background/5 backdrop-blur-md py-2 px-2 z-10">
+<h2 class="text-secondary font-headline font-bold text-xl">C</h2>
+</div>
+<div class="space-y-3 mt-2">
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px]">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant text-2xl">calendar_month</span>
+</div>
+<span class="text-base font-medium text-white">Calendar</span>
+</div>
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px]">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant text-2xl">cloud</span>
+</div>
+<span class="text-base font-medium text-white">Cloud Drive</span>
+</div>
+</div>
+</div>
+<!-- F -->
+<div class="mb-6">
+<div class="sticky top-0 bg-background/5 backdrop-blur-md py-2 px-2 z-10">
+<h2 class="text-secondary font-headline font-bold text-xl">F</h2>
+</div>
+<div class="space-y-3 mt-2">
+<div class="flex items-center gap-4 p-3 glass-item rounded-[16px]">
+<div class="w-12 h-12 rounded-[12px] bg-surface-container-highest/40 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant text-2xl">folder_shared</span>
+</div>
+<span class="text-base font-medium text-white">Files</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Indicator -->
+<div class="fixed bottom-4 left-0 right-0 flex justify-center pointer-events-none">
+<div class="w-12 h-1.5 rounded-full bg-white/20"></div>
+</div>
+</body></html>
+
+<!-- App Info & Actions -->
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Mail App Info - Nocturnal OS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface-variant": "#ccc3d8",
+                        "on-tertiary-fixed": "#301400",
+                        "on-primary-fixed-variant": "#5a00c6",
+                        "on-secondary-fixed-variant": "#004e5a",
+                        "inverse-primary": "#732ee4",
+                        "error-container": "#93000a",
+                        "tertiary": "#ffb784",
+                        "primary-container": "#7c3aed",
+                        "inverse-on-surface": "#303036",
+                        "on-secondary-fixed": "#001f25",
+                        "on-tertiary-container": "#ffe0cd",
+                        "surface-bright": "#39383e",
+                        "tertiary-fixed-dim": "#ffb784",
+                        "on-primary-fixed": "#25005a",
+                        "on-error": "#690005",
+                        "surface-tint": "#d2bbff",
+                        "on-background": "#e4e1e9",
+                        "surface": "#131318",
+                        "secondary": "#5de6ff",
+                        "primary": "#d2bbff",
+                        "inverse-surface": "#e4e1e9",
+                        "surface-dim": "#131318",
+                        "tertiary-container": "#a15100",
+                        "on-surface": "#e4e1e9",
+                        "on-secondary": "#00363e",
+                        "on-primary-container": "#ede0ff",
+                        "surface-container": "#1f1f25",
+                        "primary-fixed": "#eaddff",
+                        "surface-container-low": "#1b1b20",
+                        "on-tertiary-fixed-variant": "#713700",
+                        "outline": "#958da1",
+                        "surface-container-highest": "#35343a",
+                        "on-error-container": "#ffdad6",
+                        "primary-fixed-dim": "#d2bbff",
+                        "surface-variant": "#35343a",
+                        "secondary-fixed-dim": "#2fd9f4",
+                        "surface-container-lowest": "#0e0e13",
+                        "secondary-fixed": "#a2eeff",
+                        "on-secondary-container": "#00515d",
+                        "background": "#131318",
+                        "outline-variant": "#4a4455",
+                        "on-tertiary": "#4f2500",
+                        "tertiary-fixed": "#ffdcc6",
+                        "secondary-container": "#00cbe6",
+                        "on-primary": "#3f008e",
+                        "surface-container-high": "#2a292f",
+                        "error": "#ffb4ab"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                },
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+        .font-headline { font-family: 'Space Grotesk', sans-serif; }
+        .glass-panel {
+            background: rgba(19, 19, 24, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .app-icon-glow {
+            box-shadow: 0 0 40px rgba(124, 58, 237, 0.4);
+        }
+        .ghost-border {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  <style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}[type='text'],input:where(:not([type])),[type='email'],[type='url'],[type='password'],[type='number'],[type='date'],[type='datetime-local'],[type='month'],[type='search'],[type='tel'],[type='time'],[type='week'],[multiple],textarea,select{-webkit-appearance:none;appearance:none;background-color:#fff;border-color:#6b7280;border-width:1px;border-radius:0px;padding-top:0.5rem;padding-right:0.75rem;padding-bottom:0.5rem;padding-left:0.75rem;font-size:1rem;line-height:1.5rem;--tw-shadow:0 0 #0000;}[type='text']:focus, input:where(:not([type])):focus, [type='email']:focus, [type='url']:focus, [type='password']:focus, [type='number']:focus, [type='date']:focus, [type='datetime-local']:focus, [type='month']:focus, [type='search']:focus, [type='tel']:focus, [type='time']:focus, [type='week']:focus, [multiple]:focus, textarea:focus, select:focus{outline:2px solid transparent;outline-offset:2px;--tw-ring-inset:var(--tw-empty,/*!*/ /*!*/);--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:#2563eb;--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);border-color:#2563eb}input::placeholder,textarea::placeholder{color:#6b7280;opacity:1}::-webkit-datetime-edit-fields-wrapper{padding:0}::-webkit-date-and-time-value{min-height:1.5em;text-align:inherit}::-webkit-datetime-edit{display:inline-flex}::-webkit-datetime-edit,::-webkit-datetime-edit-year-field,::-webkit-datetime-edit-month-field,::-webkit-datetime-edit-day-field,::-webkit-datetime-edit-hour-field,::-webkit-datetime-edit-minute-field,::-webkit-datetime-edit-second-field,::-webkit-datetime-edit-millisecond-field,::-webkit-datetime-edit-meridiem-field{padding-top:0;padding-bottom:0}select{background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");background-position:right 0.5rem center;background-repeat:no-repeat;background-size:1.5em 1.5em;padding-right:2.5rem;print-color-adjust:exact}[multiple],[size]:where(select:not([size="1"])){background-image:initial;background-position:initial;background-repeat:unset;background-size:initial;padding-right:0.75rem;print-color-adjust:unset}[type='checkbox'],[type='radio']{-webkit-appearance:none;appearance:none;padding:0;print-color-adjust:exact;display:inline-block;vertical-align:middle;background-origin:border-box;-webkit-user-select:none;user-select:none;flex-shrink:0;height:1rem;width:1rem;color:#2563eb;background-color:#fff;border-color:#6b7280;border-width:1px;--tw-shadow:0 0 #0000}[type='checkbox']{border-radius:0px}[type='radio']{border-radius:100%}[type='checkbox']:focus,[type='radio']:focus{outline:2px solid transparent;outline-offset:2px;--tw-ring-inset:var(--tw-empty,/*!*/ /*!*/);--tw-ring-offset-width:2px;--tw-ring-offset-color:#fff;--tw-ring-color:#2563eb;--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)}[type='checkbox']:checked,[type='radio']:checked{border-color:transparent;background-color:currentColor;background-size:100% 100%;background-position:center;background-repeat:no-repeat}[type='checkbox']:checked{background-image:url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");}@media (forced-colors: active) {[type='checkbox']:checked{-webkit-appearance:auto;appearance:auto}}[type='radio']:checked{background-image:url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3ccircle cx='8' cy='8' r='3'/%3e%3c/svg%3e");}@media (forced-colors: active) {[type='radio']:checked{-webkit-appearance:auto;appearance:auto}}[type='checkbox']:checked:hover,[type='checkbox']:checked:focus,[type='radio']:checked:hover,[type='radio']:checked:focus{border-color:transparent;background-color:currentColor}[type='checkbox']:indeterminate{background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 16 16'%3e%3cpath stroke='white' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 8h8'/%3e%3c/svg%3e");border-color:transparent;background-color:currentColor;background-size:100% 100%;background-position:center;background-repeat:no-repeat;}@media (forced-colors: active) {[type='checkbox']:indeterminate{-webkit-appearance:auto;appearance:auto}}[type='checkbox']:indeterminate:hover,[type='checkbox']:indeterminate:focus{border-color:transparent;background-color:currentColor}[type='file']{background:unset;border-color:inherit;border-width:0;border-radius:0;padding:0;font-size:unset;line-height:inherit}[type='file']:focus{outline:1px solid ButtonText;outline:1px auto -webkit-focus-ring-color}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.inset-0{inset:0px}.top-0{top:0px}.z-0{z-index:0}.z-10{z-index:10}.z-20{z-index:20}.z-50{z-index:50}.flex{display:flex}.h-12{height:3rem}.h-14{height:3.5rem}.h-16{height:4rem}.h-8{height:2rem}.h-\[120px\]{height:120px}.min-h-\[884px\]{min-height:884px}.w-12{width:3rem}.w-14{width:3.5rem}.w-8{width:2rem}.w-\[120px\]{width:120px}.w-full{width:100%}.min-w-0{min-width:0px}.max-w-\[280px\]{max-width:280px}.max-w-md{max-width:28rem}.flex-1{flex:1 1 0%}.flex-shrink-0{flex-shrink:0}.scale-110{--tw-scale-x:1.1;--tw-scale-y:1.1;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}@keyframes pulse{50%{opacity:.5}}.animate-pulse{animation:pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite}.cursor-pointer{cursor:pointer}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-12{gap:3rem}.gap-2{gap:0.5rem}.gap-3{gap:0.75rem}.gap-4{gap:1rem}.gap-8{gap:2rem}.space-y-1 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.25rem * var(--tw-space-y-reverse))}.space-y-3 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.75rem * var(--tw-space-y-reverse))}.space-y-4 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem * var(--tw-space-y-reverse))}.overflow-hidden{overflow:hidden}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rounded-2xl{border-radius:1rem}.rounded-\[32px\]{border-radius:32px}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:2rem}.border{border-width:1px}.border-t{border-top-width:1px}.border-white\/20{border-color:rgb(255 255 255 / 0.2)}.border-white\/5{border-color:rgb(255 255 255 / 0.05)}.bg-\[\#131318\]\/70{background-color:rgb(19 19 24 / 0.7)}.bg-secondary-container\/20{background-color:rgb(0 203 230 / 0.2)}.bg-surface-container-lowest{--tw-bg-opacity:1;background-color:rgb(14 14 19 / var(--tw-bg-opacity, 1))}.bg-surface-container-lowest\/60{background-color:rgb(14 14 19 / 0.6)}.bg-gradient-to-br{background-image:linear-gradient(to bottom right, var(--tw-gradient-stops))}.from-primary{--tw-gradient-from:#d2bbff var(--tw-gradient-from-position);--tw-gradient-to:rgb(210 187 255 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.to-primary-container{--tw-gradient-to:#7c3aed var(--tw-gradient-to-position)}.bg-cover{background-size:cover}.bg-center{background-position:center}.p-3{padding:0.75rem}.p-6{padding:1.5rem}.p-8{padding:2rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.pt-4{padding-top:1rem}.text-center{text-align:center}.font-\[\'Space_Grotesk\'\]{font-family:'Space Grotesk'}.font-headline{font-family:Space Grotesk}.font-label{font-family:Manrope}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-6xl{font-size:3.75rem;line-height:1}.text-\[10px\]{font-size:10px}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xs{font-size:0.75rem;line-height:1rem}.font-bold{font-weight:700}.font-medium{font-weight:500}.uppercase{text-transform:uppercase}.tracking-\[0\.2em\]{letter-spacing:0.2em}.tracking-tight{letter-spacing:-0.025em}.tracking-wider{letter-spacing:0.05em}.tracking-widest{letter-spacing:0.1em}.text-\[\#D2BBFF\]{--tw-text-opacity:1;color:rgb(210 187 255 / var(--tw-text-opacity, 1))}.text-on-primary{--tw-text-opacity:1;color:rgb(63 0 142 / var(--tw-text-opacity, 1))}.text-on-surface{--tw-text-opacity:1;color:rgb(228 225 233 / var(--tw-text-opacity, 1))}.text-on-surface-variant{--tw-text-opacity:1;color:rgb(204 195 216 / var(--tw-text-opacity, 1))}.text-on-surface-variant\/30{color:rgb(204 195 216 / 0.3)}.text-on-surface-variant\/60{color:rgb(204 195 216 / 0.6)}.text-primary{--tw-text-opacity:1;color:rgb(210 187 255 / var(--tw-text-opacity, 1))}.text-secondary{--tw-text-opacity:1;color:rgb(93 230 255 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.text-white\/50{color:rgb(255 255 255 / 0.5)}.text-white\/70{color:rgb(255 255 255 / 0.7)}.opacity-40{opacity:0.4}.opacity-60{opacity:0.6}.opacity-70{opacity:0.7}.shadow-\[0_24px_48px_rgba\(0\2c 0\2c 0\2c 0\.4\)\]{--tw-shadow:0 24px 48px rgba(0,0,0,0.4);--tw-shadow-colored:0 24px 48px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.blur-3xl{--tw-blur:blur(64px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.backdrop-blur-xl{--tw-backdrop-blur:blur(24px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-colors{transition-property:color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-opacity{transition-property:opacity;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-transform{transition-property:transform;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-300{transition-duration:300ms}.duration-500{transition-duration:500ms}.hover\:scale-105:hover{--tw-scale-x:1.05;--tw-scale-y:1.05;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.hover\:bg-white\/5:hover{background-color:rgb(255 255 255 / 0.05)}.hover\:opacity-100:hover{opacity:1}.group:hover .group-hover\:bg-error\/20{background-color:rgb(255 180 171 / 0.2)}.group:hover .group-hover\:bg-primary\/20{background-color:rgb(210 187 255 / 0.2)}.group:hover .group-hover\:bg-secondary\/20{background-color:rgb(93 230 255 / 0.2)}.group:hover .group-hover\:text-error{--tw-text-opacity:1;color:rgb(255 180 171 / var(--tw-text-opacity, 1))}.group:hover .group-hover\:text-primary{--tw-text-opacity:1;color:rgb(210 187 255 / var(--tw-text-opacity, 1))}.group:hover .group-hover\:text-secondary{--tw-text-opacity:1;color:rgb(93 230 255 / var(--tw-text-opacity, 1))}.group:active .group-active\:scale-90{--tw-scale-x:.9;--tw-scale-y:.9;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}</style></head>
+<body class="bg-surface-container-lowest text-on-surface min-h-[884px] flex items-center justify-center p-6 overflow-hidden relative" data-stitch-vh="min-h-[884px]===min-h-screen" data-mode="connect">
+<!-- Blurred Home Screen Background -->
+<div class="absolute inset-0 z-0 bg-cover bg-center scale-110 blur-3xl opacity-40" data-alt="abstract flowing liquid digital art with deep violets and magentas in a cinematic lighting style" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCZF343kg9haHtAQA0EtME9OkQxcPYgu9fXrQ_c5XP8g2o4ILMD3F9aPD_4mLgZPtxZvH33Q0RTziT6b7wJ_9ROvOt6H-sAVHSubBbOo3ZHxb-YEF5SbjcNmkX_oGEWa5Jn4LNDhxF6yXWgFiESHPpT4a0Nntt3uEaJl5Aoxj5hmvdfQGgj6rKL8_aQSgMNoaWtwQVP_c53qoSHMLkqLDuULyqLlF87srr5zFouEgPiKZMX214rs-gxSqK99Ro-btx_zy-w_lQX_fZM');">
+</div>
+<div class="absolute inset-0 z-10 bg-surface-container-lowest/60"></div>
+<!-- Main Overlay Container -->
+<main class="relative z-20 w-full max-w-md flex flex-col items-center gap-12">
+<!-- Top: Hero App Icon -->
+<div class="relative group">
+<div class="w-[120px] h-[120px] rounded-[32px] bg-gradient-to-br from-primary to-primary-container flex items-center justify-center app-icon-glow transform transition-transform duration-500 hover:scale-105">
+<span class="material-symbols-outlined text-on-primary text-6xl" style="font-variation-settings: 'FILL' 1;">mail</span>
+</div>
+<!-- Decorative Light Ring -->
+<div class="absolute inset-0 rounded-[32px] border border-white/20 animate-pulse"></div>
+</div>
+<!-- Middle: Info Card -->
+<section class="glass-panel w-full rounded-lg ghost-border p-8 shadow-[0_24px_48px_rgba(0,0,0,0.4)]">
+<div class="flex flex-col items-center gap-8">
+<!-- App Identity -->
+<div class="text-center space-y-1">
+<h1 class="text-3xl font-headline font-bold text-white tracking-tight">Mail</h1>
+<p class="text-on-surface-variant text-sm font-label tracking-widest uppercase opacity-70">AetherOS Default System</p>
+</div>
+<!-- Quick Action Buttons -->
+<nav class="flex justify-between w-full max-w-[280px]">
+<!-- Open Action -->
+<div class="flex flex-col items-center gap-2 group cursor-pointer">
+<div class="w-14 h-14 rounded-full glass-panel ghost-border flex items-center justify-center text-primary transition-all duration-300 group-hover:bg-primary/20 group-active:scale-90">
+<span class="material-symbols-outlined text-2xl">open_in_new</span>
+</div>
+<span class="text-[10px] font-label font-bold uppercase tracking-wider text-on-surface-variant group-hover:text-primary">Open</span>
+</div>
+<!-- Uninstall Action -->
+<div class="flex flex-col items-center gap-2 group cursor-pointer">
+<div class="w-14 h-14 rounded-full glass-panel ghost-border flex items-center justify-center text-primary transition-all duration-300 group-hover:bg-error/20 group-hover:text-error group-active:scale-90">
+<span class="material-symbols-outlined text-2xl">delete</span>
+</div>
+<span class="text-[10px] font-label font-bold uppercase tracking-wider text-on-surface-variant group-hover:text-error">Uninstall</span>
+</div>
+<!-- Info Action -->
+<div class="flex flex-col items-center gap-2 group cursor-pointer">
+<div class="w-14 h-14 rounded-full glass-panel ghost-border flex items-center justify-center text-primary transition-all duration-300 group-hover:bg-secondary/20 group-hover:text-secondary group-active:scale-90">
+<span class="material-symbols-outlined text-2xl">info</span>
+</div>
+<span class="text-[10px] font-label font-bold uppercase tracking-wider text-on-surface-variant group-hover:text-secondary">Info</span>
+</div>
+</nav>
+<!-- Recent Activity Section -->
+<div class="w-full space-y-4 pt-4 border-t border-white/5">
+<div class="flex items-center justify-between">
+<h2 class="text-xs font-label font-bold text-white/50 uppercase tracking-[0.2em]">Recent Activity</h2>
+<span class="text-[10px] text-secondary font-medium">View All</span>
+</div>
+<div class="space-y-3">
+<!-- Activity Item 1 -->
+<div class="flex items-center gap-4 p-3 rounded-2xl transition-colors hover:bg-white/5">
+<div class="flex-shrink-0 w-8 h-8 rounded-full bg-secondary-container/20 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-lg">alternate_email</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-medium text-white truncate">New email from Sarah</p>
+<p class="text-xs text-on-surface-variant/60 font-label">2 minutes ago</p>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant/30 text-sm">chevron_right</span>
+</div>
+<!-- Activity Item 2 -->
+<div class="flex items-center gap-4 p-3 rounded-2xl transition-colors hover:bg-white/5">
+<div class="flex-shrink-0 w-8 h-8 rounded-full bg-secondary-container/20 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-lg">event</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-medium text-white truncate">Upcoming Meeting</p>
+<p class="text-xs text-on-surface-variant/60 font-label">Starts in 15m</p>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant/30 text-sm">chevron_right</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Footer / Close Interaction Hint -->
+<button class="flex flex-col items-center gap-3 opacity-60 hover:opacity-100 transition-opacity">
+<div class="w-12 h-12 rounded-full glass-panel ghost-border flex items-center justify-center text-white">
+<span class="material-symbols-outlined">close</span>
+</div>
+<span class="text-[10px] font-label font-bold uppercase tracking-widest">Dismiss Overlay</span>
+</button>
+</main>
+<!-- Top App Bar (As required by Shared Components - Transactional Context suppresses it, but including semantic structure) -->
+<header class="fixed top-0 w-full z-50 flex items-center justify-between px-6 h-16 bg-[#131318]/70 backdrop-blur-xl">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#D2BBFF]" data-icon="close">close</span>
+</div>
+<div class="text-lg font-bold text-white font-['Space_Grotesk'] tracking-tight">App Actions</div>
+<div class="flex items-center">
+<span class="material-symbols-outlined text-white/70" data-icon="more_vert">more_vert</span>
+</div>
+</header>
+<!-- Bottom Navigation (Suppressed for focused task overlay per rules) -->
+</body></html>
+
+<!-- Widget Picker -->
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary-container": "#00cbe6",
+            "inverse-on-surface": "#303036",
+            "background": "#131318",
+            "on-tertiary-fixed-variant": "#713700",
+            "on-tertiary-fixed": "#301400",
+            "tertiary": "#ffb784",
+            "on-secondary-container": "#00515d",
+            "surface-tint": "#d2bbff",
+            "tertiary-fixed": "#ffdcc6",
+            "outline": "#958da1",
+            "tertiary-container": "#a15100",
+            "primary-fixed-dim": "#d2bbff",
+            "on-secondary-fixed": "#001f25",
+            "on-error-container": "#ffdad6",
+            "on-primary": "#3f008e",
+            "surface-container-high": "#2a292f",
+            "outline-variant": "#4a4455",
+            "primary-container": "#7c3aed",
+            "on-surface": "#e4e1e9",
+            "error": "#ffb4ab",
+            "tertiary-fixed-dim": "#ffb784",
+            "secondary-fixed": "#a2eeff",
+            "surface-container-lowest": "#0e0e13",
+            "inverse-primary": "#732ee4",
+            "surface-container-low": "#1b1b20",
+            "primary-fixed": "#eaddff",
+            "on-error": "#690005",
+            "on-secondary-fixed-variant": "#004e5a",
+            "primary": "#d2bbff",
+            "on-primary-fixed": "#25005a",
+            "secondary-fixed-dim": "#2fd9f4",
+            "surface-variant": "#35343a",
+            "secondary": "#5de6ff",
+            "on-background": "#e4e1e9",
+            "surface-bright": "#39383e",
+            "on-primary-container": "#ede0ff",
+            "surface-container": "#1f1f25",
+            "surface": "#131318",
+            "on-secondary": "#00363e",
+            "error-container": "#93000a",
+            "on-primary-fixed-variant": "#5a00c6",
+            "on-tertiary-container": "#ffe0cd",
+            "on-surface-variant": "#ccc3d8",
+            "inverse-surface": "#e4e1e9",
+            "on-tertiary": "#4f2500",
+            "surface-container-highest": "#35343a",
+            "surface-dim": "#131318"
+          },
+          "borderRadius": {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Space Grotesk"],
+            "body": ["Manrope"],
+            "label": ["Manrope"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .glass-card {
+      background: rgba(19, 19, 24, 0.7);
+      backdrop-filter: blur(20px);
+    }
+    .widget-grid-mask {
+      mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface-container-lowest font-body text-on-surface overflow-hidden h-screen w-full flex flex-col">
+<!-- Background Content (Simulated Home Screen) -->
+<div class="absolute inset-0 z-0 opacity-40 blur-sm flex flex-col p-6 space-y-6">
+<div class="h-48 w-full bg-surface-container rounded-lg"></div>
+<div class="grid grid-cols-4 gap-4">
+<div class="aspect-square bg-surface-container rounded-lg"></div>
+<div class="aspect-square bg-surface-container rounded-lg"></div>
+<div class="aspect-square bg-surface-container rounded-lg"></div>
+<div class="aspect-square bg-surface-container rounded-lg"></div>
+</div>
+</div>
+<!-- Top Status Bar -->
+<header class="flex justify-between items-center w-full px-8 pt-4 z-10">
+<div class="font-headline font-bold tracking-tight text-violet-400">12:45</div>
+<div class="flex items-center gap-2 text-violet-400">
+<span class="material-symbols-outlined text-[18px]">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[18px]">battery_charging_full</span>
+</div>
+</header>
+<!-- Bottom Sheet Overlay (Dimmer) -->
+<div class="fixed inset-0 bg-black/60 z-20 backdrop-blur-sm"></div>
+<!-- Widget Picker Slide-up Sheet -->
+<main class="fixed bottom-0 left-0 right-0 h-[75%] glass-card rounded-t-lg z-30 flex flex-col border-t border-white/5 shadow-[0px_-24px_48px_rgba(0,0,0,0.6)]">
+<!-- Drag Handle -->
+<div class="w-full flex justify-center py-4">
+<div class="w-12 h-1.5 bg-white/20 rounded-full"></div>
+</div>
+<!-- Header Section -->
+<div class="px-8 pb-6 flex items-center justify-between">
+<h1 class="text-3xl font-headline font-bold text-white tracking-tight">Add Widget</h1>
+<button class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center hover:bg-surface-bright transition-colors">
+<span class="material-symbols-outlined text-white">close</span>
+</button>
+</div>
+<!-- Search / Filter (System Addition) -->
+<div class="px-8 pb-8">
+<div class="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-full px-6 py-3 flex items-center gap-3">
+<span class="material-symbols-outlined text-outline">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-on-surface placeholder:text-outline w-full text-sm" placeholder="Search widgets..." type="text"/>
+</div>
+</div>
+<!-- Scrollable Grid Area -->
+<div class="flex-1 overflow-y-auto px-8 pb-32 widget-grid-mask">
+<div class="grid grid-cols-2 gap-6 pb-20">
+<!-- Widget Item 1: Music -->
+<div class="flex flex-col gap-3 group">
+<div class="aspect-square bg-[#0D0D1A] border border-white/10 rounded-lg p-5 glass-card flex flex-col justify-between group-active:scale-95 transition-transform duration-300">
+<div class="flex justify-between items-start">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">music_note</span>
+<div class="w-2 h-2 rounded-full bg-primary-container shadow-[0_0_8px_rgba(124,58,237,0.8)]"></div>
+</div>
+<div class="space-y-2">
+<div class="h-2 w-3/4 bg-white/20 rounded-full"></div>
+<div class="h-2 w-1/2 bg-white/10 rounded-full"></div>
+</div>
+</div>
+<span class="text-on-surface-variant text-[11px] font-medium tracking-widest px-2">MEDIA PLAYER</span>
+</div>
+<!-- Widget Item 2: Weather -->
+<div class="flex flex-col gap-3 group">
+<div class="aspect-square bg-[#0D0D1A] border border-white/10 rounded-lg p-5 glass-card flex flex-col items-center justify-center gap-2 group-active:scale-95 transition-transform duration-300">
+<span class="material-symbols-outlined text-secondary text-4xl" style="font-variation-settings: 'FILL' 1;">cloud_queue</span>
+<div class="text-2xl font-headline font-bold text-white">24°</div>
+</div>
+<span class="text-on-surface-variant text-[11px] font-medium tracking-widest px-2">WEATHER FORECAST</span>
+</div>
+<!-- Widget Item 3: Battery -->
+<div class="flex flex-col gap-3 group">
+<div class="aspect-square bg-[#0D0D1A] border border-white/10 rounded-lg p-5 glass-card flex flex-col justify-center gap-4 group-active:scale-95 transition-transform duration-300">
+<div class="w-full h-4 bg-surface-container-high rounded-full overflow-hidden border border-white/5">
+<div class="h-full bg-primary-container w-[85%] shadow-[0_0_12px_rgba(124,58,237,0.5)]"></div>
+</div>
+<div class="flex justify-between items-center text-white/50 text-[10px] font-bold">
+<span>SYSTEM BATTERY</span>
+<span class="text-primary">85%</span>
+</div>
+</div>
+<span class="text-on-surface-variant text-[11px] font-medium tracking-widest px-2">ENERGY STATUS</span>
+</div>
+<!-- Widget Item 4: Calendar -->
+<div class="flex flex-col gap-3 group">
+<div class="aspect-square bg-[#0D0D1A] border border-white/10 rounded-lg p-5 glass-card flex flex-col gap-3 group-active:scale-95 transition-transform duration-300">
+<div class="text-primary-container text-xs font-bold">MON 12</div>
+<div class="space-y-3">
+<div class="flex gap-2 items-center">
+<div class="w-1 h-6 bg-secondary-container rounded-full"></div>
+<div class="h-1.5 w-full bg-white/10 rounded-full"></div>
+</div>
+<div class="flex gap-2 items-center">
+<div class="w-1 h-6 bg-primary-container rounded-full"></div>
+<div class="h-1.5 w-2/3 bg-white/10 rounded-full"></div>
+</div>
+</div>
+</div>
+<span class="text-on-surface-variant text-[11px] font-medium tracking-widest px-2">CALENDAR EVENTS</span>
+</div>
+<!-- Widget Item 5: Gallery -->
+<div class="flex flex-col gap-3 group">
+<div class="aspect-square bg-[#0D0D1A] border border-white/10 rounded-lg overflow-hidden glass-card group-active:scale-95 transition-transform duration-300">
+<img class="w-full h-full object-cover opacity-50 grayscale hover:grayscale-0 transition-all duration-500" data-alt="minimalist abstract architectural shot of curved white concrete against deep blue sky" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6ZA4X498VKj5IYOUFjMWDnrSm1xmCzOIZVJ4CZlpLbXgaVyK9YNYZ1hzrDjjNxMm55UtKU9fXcYHunZtHgWerWx9gMSQI_8p18DUPudYCyiJlvGog4PP2hH_C4W009lT9Lfzx4EorFA4aSigkn72v7ZOdw1U3oWqYU01M-Mp9WUYW9TZevg0jKT2i2FsCMMHNB-El4Pns50pY4YjROkiRsnhda5s9XUfh2-aCVDl-EvSVKaBSadJOcmHtk6qnTZgqrmCIm2c3kSzN"/>
+</div>
+<span class="text-on-surface-variant text-[11px] font-medium tracking-widest px-2">PHOTO GALLERY</span>
+</div>
+<!-- Widget Item 6: Clock -->
+<div class="flex flex-col gap-3 group">
+<div class="aspect-square bg-[#0D0D1A] border border-white/10 rounded-lg p-5 glass-card flex items-center justify-center group-active:scale-95 transition-transform duration-300">
+<div class="relative w-24 h-24 border border-white/10 rounded-full flex items-center justify-center">
+<div class="absolute w-1 h-1 bg-primary rounded-full"></div>
+<div class="absolute top-2 w-0.5 h-10 bg-white/40 origin-bottom rounded-full"></div>
+<div class="absolute top-6 w-0.5 h-6 bg-primary-container origin-bottom rounded-full rotate-90"></div>
+</div>
+</div>
+<span class="text-on-surface-variant text-[11px] font-medium tracking-widest px-2">ANALOG CLOCK</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Navigation Shell -->
+</body></html>
+
+<!-- Settings Page -->
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #131318;
+            color: #e4e1e9;
+            font-family: 'Manrope', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .glass-card {
+            background: rgba(13, 13, 26, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .setting-row:last-child {
+            border-bottom: none;
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-container": "#00cbe6",
+                    "inverse-on-surface": "#303036",
+                    "background": "#131318",
+                    "on-tertiary-fixed-variant": "#713700",
+                    "on-tertiary-fixed": "#301400",
+                    "tertiary": "#ffb784",
+                    "on-secondary-container": "#00515d",
+                    "surface-tint": "#d2bbff",
+                    "tertiary-fixed": "#ffdcc6",
+                    "outline": "#958da1",
+                    "tertiary-container": "#a15100",
+                    "primary-fixed-dim": "#d2bbff",
+                    "on-secondary-fixed": "#001f25",
+                    "on-error-container": "#ffdad6",
+                    "on-primary": "#3f008e",
+                    "surface-container-high": "#2a292f",
+                    "outline-variant": "#4a4455",
+                    "primary-container": "#7c3aed",
+                    "on-surface": "#e4e1e9",
+                    "error": "#ffb4ab",
+                    "tertiary-fixed-dim": "#ffb784",
+                    "secondary-fixed": "#a2eeff",
+                    "surface-container-lowest": "#0e0e13",
+                    "inverse-primary": "#732ee4",
+                    "surface-container-low": "#1b1b20",
+                    "primary-fixed": "#eaddff",
+                    "on-error": "#690005",
+                    "on-secondary-fixed-variant": "#004e5a",
+                    "primary": "#d2bbff",
+                    "on-primary-fixed": "#25005a",
+                    "secondary-fixed-dim": "#2fd9f4",
+                    "surface-variant": "#35343a",
+                    "secondary": "#5de6ff",
+                    "on-background": "#e4e1e9",
+                    "surface-bright": "#39383e",
+                    "on-primary-container": "#ede0ff",
+                    "surface-container": "#1f1f25",
+                    "surface": "#131318",
+                    "on-secondary": "#00363e",
+                    "error-container": "#93000a",
+                    "on-primary-fixed-variant": "#5a00c6",
+                    "on-tertiary-container": "#ffe0cd",
+                    "on-surface-variant": "#ccc3d8",
+                    "inverse-surface": "#e4e1e9",
+                    "on-tertiary": "#4f2500",
+                    "surface-container-highest": "#35343a",
+                    "surface-dim": "#131318"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Space Grotesk"],
+                    "body": ["Manrope"],
+                    "label": ["Manrope"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen">
+<!-- Top Status Bar (Derived from JSON TopAppBar) -->
+<header class="w-full pt-4 px-6 flex justify-between items-center text-violet-400 dark:text-violet-300 font-['Space_Grotesk'] font-bold tracking-tight">
+<span>12:45</span>
+<div class="flex gap-2 items-center">
+<span class="material-symbols-outlined text-sm">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-sm">battery_charging_full</span>
+</div>
+</header>
+<!-- Main Navigation Header -->
+<nav class="px-6 pt-8 pb-4 flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-[28px] font-bold font-headline text-white leading-tight">Launcher Settings</h1>
+</nav>
+<main class="px-6 space-y-8">
+<!-- Appearance Section -->
+<section>
+<h2 class="text-on-surface-variant text-sm font-semibold tracking-widest uppercase mb-4 px-2">Appearance</h2>
+<div class="glass-card rounded-lg overflow-hidden">
+<!-- Setting Row -->
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary-container text-white">
+<span class="material-symbols-outlined">palette</span>
+</div>
+<span class="text-white font-medium">Theme</span>
+</div>
+<div class="flex items-center gap-2 text-primary">
+<span class="text-sm">Ethereal Dark</span>
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</div>
+</div>
+<!-- Setting Row -->
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer border-t border-white/5">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary-container text-white">
+<span class="material-symbols-outlined">grid_view</span>
+</div>
+<span class="text-white font-medium">Icon size</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="text-sm">110%</span>
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</div>
+</div>
+<!-- Setting Row -->
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer border-t border-white/5">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary-container text-white">
+<span class="material-symbols-outlined">table_chart</span>
+</div>
+<span class="text-white font-medium">Grid columns</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="text-sm">5 x 6</span>
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</div>
+</div>
+<!-- Setting Row -->
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer border-t border-white/5">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary-container text-white">
+<span class="material-symbols-outlined">font_download</span>
+</div>
+<span class="text-white font-medium">Font</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="text-sm">Space Grotesk</span>
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Gestures Section -->
+<section>
+<h2 class="text-on-surface-variant text-sm font-semibold tracking-widest uppercase mb-4 px-2">Gestures</h2>
+<div class="glass-card rounded-lg overflow-hidden">
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary-container text-white">
+<span class="material-symbols-outlined">swipe</span>
+</div>
+<span class="text-white font-medium">Swipe actions</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer border-t border-white/5">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary-container text-white">
+<span class="material-symbols-outlined">ads_click</span>
+</div>
+<span class="text-white font-medium">Double tap</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="text-sm">Sleep screen</span>
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer border-t border-white/5">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary-container text-white">
+<span class="material-symbols-outlined">pinch</span>
+</div>
+<span class="text-white font-medium">Pinch</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="text-sm">Search</span>
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Dock Section -->
+<section>
+<h2 class="text-on-surface-variant text-sm font-semibold tracking-widest uppercase mb-4 px-2">Dock</h2>
+<div class="glass-card rounded-lg overflow-hidden">
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary-container text-white">
+<span class="material-symbols-outlined">view_agenda</span>
+</div>
+<span class="text-white font-medium">Icon count</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="text-sm">5</span>
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 border-t border-white/5">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary-container text-white">
+<span class="material-symbols-outlined">label</span>
+</div>
+<span class="text-white font-medium">Show labels</span>
+</div>
+<!-- Toggle Switch -->
+<div class="relative inline-flex items-center cursor-pointer">
+<div class="w-10 h-6 bg-primary-container/40 rounded-full transition-colors border border-primary/20"></div>
+<div class="absolute left-1 top-1 w-4 h-4 bg-primary rounded-full transition-transform translate-x-4 shadow-[0_0_8px_rgba(124,58,237,0.5)]"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- About Section -->
+<section>
+<h2 class="text-on-surface-variant text-sm font-semibold tracking-widest uppercase mb-4 px-2">About</h2>
+<div class="glass-card rounded-lg overflow-hidden">
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary-container text-white">
+<span class="material-symbols-outlined">info</span>
+</div>
+<span class="text-white font-medium">Version</span>
+</div>
+<span class="text-sm text-on-surface-variant">v4.2.0-pro</span>
+</div>
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer border-t border-white/5">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary-container text-white">
+<span class="material-symbols-outlined">chat</span>
+</div>
+<span class="text-white font-medium">Feedback</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+<div class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer border-t border-white/5">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary-container text-white">
+<span class="material-symbols-outlined">star</span>
+</div>
+<span class="text-white font-medium">Rate app</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">open_in_new</span>
+</div>
+</div>
+</section>
+<!-- Signature Card -->
+<div class="mt-4 p-8 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/10 to-transparent text-center relative overflow-hidden">
+<div class="absolute inset-0 opacity-10 bg-center bg-cover mix-blend-overlay" data-alt="close-up of complex mechanical glass patterns with neon violet lighting and deep bokeh"></div>
+<p class="text-primary text-xs tracking-widest uppercase font-bold mb-2">Nocturnal OS Premium</p>
+<p class="text-on-surface-variant text-sm">Experience the art of digital minimalism.</p>
+</div>
+</main>
+<!-- Bottom Navigation (Derived from JSON BottomNavBar) -->
+</body></html>
