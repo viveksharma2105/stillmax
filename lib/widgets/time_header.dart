@@ -204,16 +204,120 @@ class _TimeHeaderState extends ConsumerState<TimeHeader> {
     );
   }
 
+  Widget _buildMediaPlayerCard(Map<String, dynamic>? mediaInfo) {
+    if (mediaInfo == null || mediaInfo.isEmpty) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.music_note_outlined,
+              size: 48,
+              color: Colors.white.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'No media playing',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white.withValues(alpha: 0.4),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final title = mediaInfo['title'] as String? ?? 'Unknown';
+    final artist = mediaInfo['artist'] as String? ?? 'Unknown Artist';
+    final isPlaying = mediaInfo['isPlaying'] as bool? ?? false;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            artist,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.white.withValues(alpha: 0.7),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.skip_previous, color: Colors.white),
+                iconSize: 32,
+                onPressed: () {
+                  ref.read(appServiceProvider).sendMediaAction('previous');
+                },
+              ),
+              const SizedBox(width: 16),
+              IconButton(
+                icon: Icon(
+                  isPlaying
+                      ? Icons.pause_circle_filled
+                      : Icons.play_circle_filled,
+                  color: Colors.white,
+                ),
+                iconSize: 48,
+                onPressed: () {
+                  ref
+                      .read(appServiceProvider)
+                      .sendMediaAction(isPlaying ? 'pause' : 'play');
+                },
+              ),
+              const SizedBox(width: 16),
+              IconButton(
+                icon: const Icon(Icons.skip_next, color: Colors.white),
+                iconSize: 32,
+                onPressed: () {
+                  ref.read(appServiceProvider).sendMediaAction('next');
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final now = ref.watch(liveTimeProvider).valueOrNull ?? DateTime.now();
     final settings = ref.watch(settingsProvider).valueOrNull;
     final clockStyle = settings?.clockStyle ?? 'digital';
-    final leftWidgetSlotId = settings?.leftWidgetSlotId;
     final rightWidgetSlotId = settings?.rightWidgetSlotId;
     final hourString = DateFormat('HH').format(now);
     final minuteString = DateFormat('mm').format(now);
     final dateText = DateFormat('EEEE, MMMM d').format(now).toUpperCase();
+    final mediaInfo = ref.watch(mediaSessionProvider).valueOrNull;
 
     final statusBarHeight = MediaQuery.of(context).padding.top;
 
@@ -234,7 +338,7 @@ class _TimeHeaderState extends ConsumerState<TimeHeader> {
                     top: statusBarHeight + 8.0,
                     bottom: 16,
                   ),
-                  child: _buildSlot(widgetId: leftWidgetSlotId, leftSlot: true),
+                  child: _buildMediaPlayerCard(mediaInfo),
                 ),
                 Padding(
                   padding: EdgeInsets.only(

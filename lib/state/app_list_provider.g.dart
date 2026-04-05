@@ -1984,73 +1984,83 @@ const SettingsDbSchema = CollectionSchema(
       name: r'doubleTapAction',
       type: IsarType.long,
     ),
-    r'fontScaleFactor': PropertySchema(
+    r'favoritesSpacing': PropertySchema(
       id: 4,
+      name: r'favoritesSpacing',
+      type: IsarType.double,
+    ),
+    r'fontScaleFactor': PropertySchema(
+      id: 5,
       name: r'fontScaleFactor',
       type: IsarType.double,
     ),
     r'fontSize': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'fontSize',
       type: IsarType.long,
     ),
     r'gridColumns': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'gridColumns',
       type: IsarType.long,
     ),
     r'hapticsEnabled': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'hapticsEnabled',
       type: IsarType.bool,
     ),
     r'iconShape': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'iconShape',
       type: IsarType.long,
     ),
     r'iconSize': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'iconSize',
       type: IsarType.long,
     ),
     r'iconTheme': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'iconTheme',
       type: IsarType.long,
     ),
     r'leftWidgetSlotId': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'leftWidgetSlotId',
       type: IsarType.long,
     ),
     r'pinchAction': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'pinchAction',
       type: IsarType.long,
     ),
     r'rightWidgetSlotId': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'rightWidgetSlotId',
       type: IsarType.long,
     ),
     r'showDockLabels': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'showDockLabels',
       type: IsarType.bool,
     ),
     r'showLabels': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'showLabels',
       type: IsarType.bool,
     ),
     r'showRecents': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'showRecents',
       type: IsarType.bool,
     ),
+    r'sidebarSpacing': PropertySchema(
+      id: 18,
+      name: r'sidebarSpacing',
+      type: IsarType.double,
+    ),
     r'swipeLeftAction': PropertySchema(
-      id: 17,
+      id: 19,
       name: r'swipeLeftAction',
       type: IsarType.long,
     )
@@ -2089,20 +2099,22 @@ void _settingsDbSerialize(
   writer.writeString(offsets[1], object.clockStyle);
   writer.writeLong(offsets[2], object.dockIconCount);
   writer.writeLong(offsets[3], object.doubleTapAction);
-  writer.writeDouble(offsets[4], object.fontScaleFactor);
-  writer.writeLong(offsets[5], object.fontSize);
-  writer.writeLong(offsets[6], object.gridColumns);
-  writer.writeBool(offsets[7], object.hapticsEnabled);
-  writer.writeLong(offsets[8], object.iconShape);
-  writer.writeLong(offsets[9], object.iconSize);
-  writer.writeLong(offsets[10], object.iconTheme);
-  writer.writeLong(offsets[11], object.leftWidgetSlotId);
-  writer.writeLong(offsets[12], object.pinchAction);
-  writer.writeLong(offsets[13], object.rightWidgetSlotId);
-  writer.writeBool(offsets[14], object.showDockLabels);
-  writer.writeBool(offsets[15], object.showLabels);
-  writer.writeBool(offsets[16], object.showRecents);
-  writer.writeLong(offsets[17], object.swipeLeftAction);
+  writer.writeDouble(offsets[4], object.favoritesSpacing);
+  writer.writeDouble(offsets[5], object.fontScaleFactor);
+  writer.writeLong(offsets[6], object.fontSize);
+  writer.writeLong(offsets[7], object.gridColumns);
+  writer.writeBool(offsets[8], object.hapticsEnabled);
+  writer.writeLong(offsets[9], object.iconShape);
+  writer.writeLong(offsets[10], object.iconSize);
+  writer.writeLong(offsets[11], object.iconTheme);
+  writer.writeLong(offsets[12], object.leftWidgetSlotId);
+  writer.writeLong(offsets[13], object.pinchAction);
+  writer.writeLong(offsets[14], object.rightWidgetSlotId);
+  writer.writeBool(offsets[15], object.showDockLabels);
+  writer.writeBool(offsets[16], object.showLabels);
+  writer.writeBool(offsets[17], object.showRecents);
+  writer.writeDouble(offsets[18], object.sidebarSpacing);
+  writer.writeLong(offsets[19], object.swipeLeftAction);
 }
 
 SettingsDb _settingsDbDeserialize(
@@ -2116,21 +2128,23 @@ SettingsDb _settingsDbDeserialize(
   object.clockStyle = reader.readString(offsets[1]);
   object.dockIconCount = reader.readLong(offsets[2]);
   object.doubleTapAction = reader.readLong(offsets[3]);
-  object.fontScaleFactor = reader.readDouble(offsets[4]);
-  object.fontSize = reader.readLong(offsets[5]);
-  object.gridColumns = reader.readLong(offsets[6]);
-  object.hapticsEnabled = reader.readBool(offsets[7]);
-  object.iconShape = reader.readLong(offsets[8]);
-  object.iconSize = reader.readLong(offsets[9]);
-  object.iconTheme = reader.readLong(offsets[10]);
+  object.favoritesSpacing = reader.readDouble(offsets[4]);
+  object.fontScaleFactor = reader.readDouble(offsets[5]);
+  object.fontSize = reader.readLong(offsets[6]);
+  object.gridColumns = reader.readLong(offsets[7]);
+  object.hapticsEnabled = reader.readBool(offsets[8]);
+  object.iconShape = reader.readLong(offsets[9]);
+  object.iconSize = reader.readLong(offsets[10]);
+  object.iconTheme = reader.readLong(offsets[11]);
   object.id = id;
-  object.leftWidgetSlotId = reader.readLongOrNull(offsets[11]);
-  object.pinchAction = reader.readLong(offsets[12]);
-  object.rightWidgetSlotId = reader.readLongOrNull(offsets[13]);
-  object.showDockLabels = reader.readBool(offsets[14]);
-  object.showLabels = reader.readBool(offsets[15]);
-  object.showRecents = reader.readBool(offsets[16]);
-  object.swipeLeftAction = reader.readLong(offsets[17]);
+  object.leftWidgetSlotId = reader.readLongOrNull(offsets[12]);
+  object.pinchAction = reader.readLong(offsets[13]);
+  object.rightWidgetSlotId = reader.readLongOrNull(offsets[14]);
+  object.showDockLabels = reader.readBool(offsets[15]);
+  object.showLabels = reader.readBool(offsets[16]);
+  object.showRecents = reader.readBool(offsets[17]);
+  object.sidebarSpacing = reader.readDouble(offsets[18]);
+  object.swipeLeftAction = reader.readLong(offsets[19]);
   return object;
 }
 
@@ -2152,30 +2166,34 @@ P _settingsDbDeserializeProp<P>(
     case 4:
       return (reader.readDouble(offset)) as P;
     case 5:
-      return (reader.readLong(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 6:
       return (reader.readLong(offset)) as P;
     case 7:
-      return (reader.readBool(offset)) as P;
-    case 8:
       return (reader.readLong(offset)) as P;
+    case 8:
+      return (reader.readBool(offset)) as P;
     case 9:
       return (reader.readLong(offset)) as P;
     case 10:
       return (reader.readLong(offset)) as P;
     case 11:
-      return (reader.readLongOrNull(offset)) as P;
-    case 12:
       return (reader.readLong(offset)) as P;
-    case 13:
+    case 12:
       return (reader.readLongOrNull(offset)) as P;
+    case 13:
+      return (reader.readLong(offset)) as P;
     case 14:
-      return (reader.readBool(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 15:
       return (reader.readBool(offset)) as P;
     case 16:
       return (reader.readBool(offset)) as P;
     case 17:
+      return (reader.readBool(offset)) as P;
+    case 18:
+      return (reader.readDouble(offset)) as P;
+    case 19:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -2582,6 +2600,72 @@ extension SettingsDbQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      favoritesSpacingEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'favoritesSpacing',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      favoritesSpacingGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'favoritesSpacing',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      favoritesSpacingLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'favoritesSpacing',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      favoritesSpacingBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'favoritesSpacing',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
       ));
     });
   }
@@ -3222,6 +3306,72 @@ extension SettingsDbQueryFilter
   }
 
   QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      sidebarSpacingEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'sidebarSpacing',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      sidebarSpacingGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'sidebarSpacing',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      sidebarSpacingLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'sidebarSpacing',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      sidebarSpacingBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'sidebarSpacing',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
       swipeLeftActionEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -3332,6 +3482,19 @@ extension SettingsDbQuerySortBy
       sortByDoubleTapActionDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'doubleTapAction', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> sortByFavoritesSpacing() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'favoritesSpacing', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy>
+      sortByFavoritesSpacingDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'favoritesSpacing', Sort.desc);
     });
   }
 
@@ -3496,6 +3659,19 @@ extension SettingsDbQuerySortBy
     });
   }
 
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> sortBySidebarSpacing() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sidebarSpacing', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy>
+      sortBySidebarSpacingDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sidebarSpacing', Sort.desc);
+    });
+  }
+
   QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> sortBySwipeLeftAction() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'swipeLeftAction', Sort.asc);
@@ -3558,6 +3734,19 @@ extension SettingsDbQuerySortThenBy
       thenByDoubleTapActionDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'doubleTapAction', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> thenByFavoritesSpacing() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'favoritesSpacing', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy>
+      thenByFavoritesSpacingDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'favoritesSpacing', Sort.desc);
     });
   }
 
@@ -3734,6 +3923,19 @@ extension SettingsDbQuerySortThenBy
     });
   }
 
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> thenBySidebarSpacing() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sidebarSpacing', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy>
+      thenBySidebarSpacingDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sidebarSpacing', Sort.desc);
+    });
+  }
+
   QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> thenBySwipeLeftAction() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'swipeLeftAction', Sort.asc);
@@ -3772,6 +3974,12 @@ extension SettingsDbQueryWhereDistinct
   QueryBuilder<SettingsDb, SettingsDb, QDistinct> distinctByDoubleTapAction() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'doubleTapAction');
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QDistinct> distinctByFavoritesSpacing() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'favoritesSpacing');
     });
   }
 
@@ -3854,6 +4062,12 @@ extension SettingsDbQueryWhereDistinct
     });
   }
 
+  QueryBuilder<SettingsDb, SettingsDb, QDistinct> distinctBySidebarSpacing() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'sidebarSpacing');
+    });
+  }
+
   QueryBuilder<SettingsDb, SettingsDb, QDistinct> distinctBySwipeLeftAction() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'swipeLeftAction');
@@ -3890,6 +4104,13 @@ extension SettingsDbQueryProperty
   QueryBuilder<SettingsDb, int, QQueryOperations> doubleTapActionProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'doubleTapAction');
+    });
+  }
+
+  QueryBuilder<SettingsDb, double, QQueryOperations>
+      favoritesSpacingProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'favoritesSpacing');
     });
   }
 
@@ -3968,6 +4189,12 @@ extension SettingsDbQueryProperty
   QueryBuilder<SettingsDb, bool, QQueryOperations> showRecentsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'showRecents');
+    });
+  }
+
+  QueryBuilder<SettingsDb, double, QQueryOperations> sidebarSpacingProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'sidebarSpacing');
     });
   }
 

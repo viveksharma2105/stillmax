@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 
 class AppService {
   static const MethodChannel _channel = MethodChannel(
@@ -257,6 +258,34 @@ class AppService {
       'appWidgetId': appWidgetId,
     });
     return result ?? false;
+  }
+
+  Future<Map<String, dynamic>?> getActiveMediaSession() async {
+    try {
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'getActiveMediaSession',
+      );
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint('Media session error: ${e.message}');
+      return null;
+    }
+  }
+
+  Future<void> sendMediaAction(String action) async {
+    try {
+      await _channel.invokeMethod('sendMediaAction', {'action': action});
+    } on PlatformException catch (e) {
+      debugPrint('Media action error: ${e.message}');
+    }
+  }
+
+  Future<void> openNotificationListenerSettings() async {
+    try {
+      await _channel.invokeMethod('openNotificationListenerSettings');
+    } on PlatformException catch (e) {
+      debugPrint('Settings error: ${e.message}');
+    }
   }
 }
 

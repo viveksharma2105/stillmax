@@ -76,6 +76,10 @@ class SettingsDb {
   late int iconTheme; // AppIconTheme index
   late double
   clockSpacing; // spacing between clock header and favourites (default 40.0)
+  late double
+  sidebarSpacing; // vertical offset of sidebar from top edge, default 100.0
+  late double
+  favoritesSpacing; // vertical spacing between favorites section header and app list, default 8.0
   int? leftWidgetSlotId; // appWidgetId for left slot in TimeHeader PageView
   int? rightWidgetSlotId; // appWidgetId for right slot in TimeHeader PageView
 }
@@ -193,7 +197,9 @@ SettingsDb _defaultSettingsDb() {
     ..hapticsEnabled = true
     ..clockStyle = 'digital'
     ..iconTheme = AppIconTheme.defaultTheme.index
-    ..clockSpacing = 40.0;
+    ..clockSpacing = 40.0
+    ..sidebarSpacing = 100.0
+    ..favoritesSpacing = 8.0;
 }
 
 final isarProvider = FutureProvider<Isar>((ref) async {
@@ -306,6 +312,20 @@ final notificationCountsProvider = StreamProvider<Map<String, int>>((
       yield const <String, int>{};
     }
     await Future<void>.delayed(const Duration(seconds: 5));
+  }
+});
+
+final mediaSessionProvider = StreamProvider<Map<String, dynamic>?>((
+  ref,
+) async* {
+  final service = ref.watch(appServiceProvider);
+  while (true) {
+    try {
+      yield await service.getActiveMediaSession();
+    } catch (_) {
+      yield null;
+    }
+    await Future<void>.delayed(const Duration(seconds: 2));
   }
 });
 
@@ -894,6 +914,37 @@ class DockAppsNotifier extends StateNotifier<List<AppInfo?>> {
   }
 }
 
+final wallpaperNotifierProvider = Provider<WallpaperNotifier>(
+  (ref) => WallpaperNotifier(ref),
+);
+
+class WallpaperNotifier {
+  WallpaperNotifier(this.ref);
+
+  final Ref ref;
+
+  Future<bool> setWallpaperFromImagePath(String path) async {
+    final service = ref.read(appServiceProvider);
+    final result = await service.setWallpaperFromPath(path);
+    if (result) {
+      // Invalidate the wallpaperBytesProvider to refresh the UI
+      ref.invalidate(wallpaperBytesProvider);
+    }
+    return result;
+  }
+
+  Future<bool> resetWallpaper() async {
+    final service = ref.read(appServiceProvider);
+    // Pass empty string to reset/clear the wallpaper
+    final result = await service.setWallpaperFromPath('');
+    if (result) {
+      // Invalidate the wallpaperBytesProvider to refresh the UI
+      ref.invalidate(wallpaperBytesProvider);
+    }
+    return result;
+  }
+}
+
 final settingsNotifierProvider = Provider<SettingsNotifier>(
   (ref) => SettingsNotifier(ref),
 );
@@ -931,6 +982,24 @@ class SettingsNotifier {
     await isar.writeTxn(() async {
       final settings = await isar.settingsDbs.get(1) ?? _defaultSettingsDb();
       settings.clockSpacing = spacing;
+      await isar.settingsDbs.put(settings);
+    });
+  }
+
+  Future<void> updateFavoritesSpacing(double spacing) async {
+    final isar = await ref.read(isarProvider.future);
+    await isar.writeTxn(() async {
+      final settings = await isar.settingsDbs.get(1) ?? _defaultSettingsDb();
+      settings.favoritesSpacing = spacing;
+      await isar.settingsDbs.put(settings);
+    });
+  }
+
+  Future<void> updateSidebarSpacing(double spacing) async {
+    final isar = await ref.read(isarProvider.future);
+    await isar.writeTxn(() async {
+      final settings = await isar.settingsDbs.get(1) ?? _defaultSettingsDb();
+      settings.sidebarSpacing = spacing;
       await isar.settingsDbs.put(settings);
     });
   }

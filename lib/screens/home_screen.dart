@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../services/app_service.dart';
 import '../state/app_list_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/alphabet_sidebar.dart';
 import '../widgets/app_list_tile.dart';
 import '../widgets/time_header.dart';
 import 'app_drawer.dart';
+import 'stillmax_settings_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -25,6 +27,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _isAppsScrolling = false;
   bool _showAppDrawer = false;
   String? _drawerInitialLetter;
+  String _selectedLetter = '★';
 
   @override
   void initState() {
@@ -81,18 +84,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _jumpToLetter(String letter) {
-    if (letter == '★') {
-      // Scroll to top for star
-      _appsScrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-      );
-      return;
-    }
-
-    // Open drawer with this letter
-    _openAppDrawer(letter: letter);
+    setState(() {
+      _selectedLetter = letter;
+    });
+    // Scroll to top when letter changes
+    _appsScrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
@@ -102,6 +102,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final settings = ref.watch(settingsProvider).valueOrNull;
     final scale = settings?.fontScaleFactor ?? 1.0;
     final clockSpacing = (settings?.clockSpacing ?? 40.0).clamp(0.0, 200.0);
+    final favoritesSpacing = (settings?.favoritesSpacing ?? 8.0).clamp(
+      0.0,
+      100.0,
+    );
+    final sidebarSpacing = (settings?.sidebarSpacing ?? 16.0).clamp(0.0, 100.0);
     final layoutAdjustMode = ref.watch(layoutAdjustModeProvider);
 
     final navBarHeight = MediaQuery.of(context).padding.bottom;
@@ -114,190 +119,257 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         growable: false,
       ),
     ];
-    // All letters are available since they open the drawer
-    final availableSidebarLetters = sidebarLetters.toSet();
+    // All letters are available since they all filter now
+    final availableSidebarLetters = {
+      '★',
+      ...List.generate(26, (i) => String.fromCharCode(65 + i)),
+    };
 
-    final starredApps = apps
-        .where((app) => starredPackages.contains(app.packageName))
-        .toList(growable: false);
+    // Filter apps based on selected letter
+    final List<AppInfo> displayedApps;
+    final String sectionTitle;
 
-    return Stack(
-      children: [
-        Scaffold(
-          backgroundColor: const Color(0xFF090909),
-          body: Column(
-            children: [
-              // ZONE 1 — Fixed header, never scrolls
-              const TimeHeader(),
+    if (_selectedLetter == '★') {
+      displayedApps = apps
+          .where((app) => starredPackages.contains(app.packageName))
+          .toList();
+      sectionTitle = 'FAVOURITES';
+    } else {
+      displayedApps = apps.where((app) {
+        final firstChar = app.name.trim().isEmpty
+            ? ''
+            : app.name.trim()[0].toUpperCase();
+        return firstChar == _selectedLetter;
+      }).toList();
+      sectionTitle = _selectedLetter;
+    }
 
-              // ZONE 2 — Everything else scrolls
-              Expanded(
-                child: GestureDetector(
-                  onVerticalDragEnd: (details) {
-                    // Swipe up detection (negative velocity = upward)
-                    if (details.primaryVelocity != null &&
-                        details.primaryVelocity! < -300) {
-                      _openAppDrawer();
-                    }
-                  },
-                  child: Stack(
-                    children: [
-                      CustomScrollView(
-                        controller: _appsScrollController,
-                        primary: false,
-                        physics: const BouncingScrollPhysics(),
-                        slivers: [
-                          // Space after clock (adjustable)
-                          SliverToBoxAdapter(
-                            child: SizedBox(height: clockSpacing),
-                          ),
+    return PopScope(
+      canPop: !_showAppDrawer,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _showAppDrawer) {
+          _closeAppDrawer();
+        }
+      },
+      child: Stack(
+        children: [
+          Scaffold(
+            backgroundColor: const Color(0xFF090909),
+            body: Column(
+              children: [
+                // ZONE 1 — Fixed header, never scrolls
+                Padding(
+                  padding: EdgeInsets.only(top: clockSpacing),
+                  child: const TimeHeader(),
+                ),
 
-                          // Favourites section header
-                          SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.star,
-                                    color: AppColors.secondary,
-                                    size: 16,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'FAVOURITES',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.60,
-                                      ),
-                                      letterSpacing: 1.2,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                // ZONE 2 — Everything else scrolls
+                Expanded(
+                  child: GestureDetector(
+                    onVerticalDragEnd: (details) {
+                      // Swipe up detection (negative velocity = upward)
+                      if (details.primaryVelocity != null &&
+                          details.primaryVelocity! < -300) {
+                        _openAppDrawer();
+                      }
+                    },
+                    onLongPress: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const StillmaxSettingsScreen(),
+                        ),
+                      );
+                    },
+                    child: Stack(
+                      children: [
+                        CustomScrollView(
+                          controller: _appsScrollController,
+                          primary: false,
+                          physics: const BouncingScrollPhysics(),
+                          slivers: [
+                            // Spacing before favorites section (adjustable)
+                            SliverToBoxAdapter(
+                              child: SizedBox(height: favoritesSpacing),
                             ),
-                          ),
 
-                          // Spacing after favourites header
-                          const SliverToBoxAdapter(child: SizedBox(height: 8)),
-
-                          // Starred app tiles
-                          if (starredApps.isEmpty)
+                            // Dynamic section header based on selected letter
                             SliverToBoxAdapter(
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
+                                padding: const EdgeInsets.only(
+                                  left: 16,
+                                  top: 4,
+                                  bottom: 2,
                                 ),
-                                child: Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.05),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    'No favourites yet. Manage favourites in Stillmax Settings.',
-                                    style: TextStyle(
-                                      fontSize: 12 * scale,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.45,
+                                child: Row(
+                                  children: [
+                                    if (_selectedLetter == '★') ...[
+                                      Icon(
+                                        Icons.star,
+                                        color: AppColors.secondary,
+                                        size: 16,
                                       ),
-                                      fontStyle: FontStyle.italic,
+                                      const SizedBox(width: 6),
+                                    ],
+                                    Text(
+                                      sectionTitle,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white.withValues(
+                                          alpha: 0.35,
+                                        ),
+                                        letterSpacing: 1.0,
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ),
                               ),
-                            )
-                          else
-                            SliverList(
-                              delegate: SliverChildBuilderDelegate((
-                                context,
-                                index,
-                              ) {
-                                return Padding(
+                            ),
+
+                            // App tiles
+                            if (displayedApps.isEmpty)
+                              SliverToBoxAdapter(
+                                child: Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                   ),
-                                  child: AppListTile(
-                                    app: starredApps[index],
-                                    starred: true,
-                                    showDivider: false,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.05,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      _selectedLetter == '★'
+                                          ? 'No favourites yet. Manage favourites in Stillmax Settings.'
+                                          : 'No apps starting with $_selectedLetter',
+                                      style: TextStyle(
+                                        fontSize: 12 * scale,
+                                        color: Colors.white.withValues(
+                                          alpha: 0.45,
+                                        ),
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
                                   ),
-                                );
-                              }, childCount: starredApps.length),
+                                ),
+                              )
+                            else
+                              SliverList(
+                                delegate: SliverChildBuilderDelegate((
+                                  context,
+                                  index,
+                                ) {
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                    ),
+                                    child: AppListTile(
+                                      app: displayedApps[index],
+                                      starred: starredPackages.contains(
+                                        displayedApps[index].packageName,
+                                      ),
+                                      showDivider: false,
+                                    ),
+                                  );
+                                }, childCount: displayedApps.length),
+                              ),
+
+                            // Spacing after favourites
+                            const SliverToBoxAdapter(
+                              child: SizedBox(height: 12),
                             ),
 
-                          // Spacing after favourites
-                          const SliverToBoxAdapter(child: SizedBox(height: 12)),
-
-                          // Bottom padding for navigation bar
-                          SliverToBoxAdapter(
-                            child: SizedBox(height: navBarHeight + 80),
-                          ),
-                        ],
-                      ),
-
-                      // Alphabet sidebar - stays pinned
-                      Positioned(
-                        right: 8,
-                        top: 0,
-                        bottom: navBarHeight + 80,
-                        child: AlphabetSidebar(
-                          letters: sidebarLetters,
-                          availableLetters: availableSidebarLetters,
-                          onLetterChanged: _jumpToLetter,
-                          fontScaleFactor: scale,
-                          isScrolling: _isAppsScrolling,
+                            // Bottom padding for navigation bar
+                            SliverToBoxAdapter(
+                              child: SizedBox(height: navBarHeight + 80),
+                            ),
+                          ],
                         ),
-                      ),
 
-                      // Layout adjustment mode overlay
-                      if (layoutAdjustMode)
-                        Positioned.fill(
-                          child: _LayoutAdjustmentOverlay(
-                            currentSpacing: clockSpacing,
-                            onSpacingChanged: (newSpacing) async {
-                              await ref
-                                  .read(settingsNotifierProvider)
-                                  .updateClockSpacing(newSpacing);
-                            },
-                            onDone: () {
-                              ref
-                                      .read(layoutAdjustModeProvider.notifier)
-                                      .state =
-                                  false;
-                            },
+                        // Alphabet sidebar - stays pinned
+                        Positioned(
+                          right: 16,
+                          top: sidebarSpacing,
+                          bottom: navBarHeight + 80,
+                          child: AlphabetSidebar(
+                            letters: sidebarLetters,
+                            availableLetters: availableSidebarLetters,
+                            onLetterChanged: _jumpToLetter,
+                            fontScaleFactor: scale,
+                            isScrolling: _isAppsScrolling,
                           ),
                         ),
-                    ],
+
+                        // Layout adjustment mode overlay
+                        if (layoutAdjustMode)
+                          Positioned.fill(
+                            child: _LayoutAdjustmentOverlay(
+                              currentClockSpacing: clockSpacing,
+                              currentFavoritesSpacing: favoritesSpacing,
+                              currentSidebarSpacing: sidebarSpacing,
+                              onClockSpacingChanged: (newSpacing) async {
+                                await ref
+                                    .read(settingsNotifierProvider)
+                                    .updateClockSpacing(newSpacing);
+                              },
+                              onFavoritesSpacingChanged: (newSpacing) async {
+                                await ref
+                                    .read(settingsNotifierProvider)
+                                    .updateFavoritesSpacing(newSpacing);
+                              },
+                              onSidebarSpacingChanged: (newSpacing) async {
+                                await ref
+                                    .read(settingsNotifierProvider)
+                                    .updateSidebarSpacing(newSpacing);
+                              },
+                              onDone: () {
+                                ref
+                                        .read(layoutAdjustModeProvider.notifier)
+                                        .state =
+                                    false;
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        if (_showAppDrawer)
-          AppDrawer(
-            onClose: _closeAppDrawer,
-            initialLetter: _drawerInitialLetter,
-          ),
-      ],
+          if (_showAppDrawer)
+            AppDrawer(
+              onClose: _closeAppDrawer,
+              initialLetter: _drawerInitialLetter,
+              showAppsInitially: false,
+            ),
+        ],
+      ),
     );
   }
 }
 
 class _LayoutAdjustmentOverlay extends StatefulWidget {
   const _LayoutAdjustmentOverlay({
-    required this.currentSpacing,
-    required this.onSpacingChanged,
+    required this.currentClockSpacing,
+    required this.currentFavoritesSpacing,
+    required this.currentSidebarSpacing,
+    required this.onClockSpacingChanged,
+    required this.onFavoritesSpacingChanged,
+    required this.onSidebarSpacingChanged,
     required this.onDone,
   });
 
-  final double currentSpacing;
-  final ValueChanged<double> onSpacingChanged;
+  final double currentClockSpacing;
+  final double currentFavoritesSpacing;
+  final double currentSidebarSpacing;
+  final ValueChanged<double> onClockSpacingChanged;
+  final ValueChanged<double> onFavoritesSpacingChanged;
+  final ValueChanged<double> onSidebarSpacingChanged;
   final VoidCallback onDone;
 
   @override
@@ -306,12 +378,52 @@ class _LayoutAdjustmentOverlay extends StatefulWidget {
 }
 
 class _LayoutAdjustmentOverlayState extends State<_LayoutAdjustmentOverlay> {
-  late double _tempSpacing;
+  late double _tempClockSpacing;
+  late double _tempFavoritesSpacing;
+  late double _tempSidebarSpacing;
+  String _selectedSpacingType = 'time'; // 'time', 'favorites', 'sidebar'
 
   @override
   void initState() {
     super.initState();
-    _tempSpacing = widget.currentSpacing;
+    _tempClockSpacing = widget.currentClockSpacing;
+    _tempFavoritesSpacing = widget.currentFavoritesSpacing;
+    _tempSidebarSpacing = widget.currentSidebarSpacing;
+  }
+
+  double get _currentSelectedSpacing {
+    switch (_selectedSpacingType) {
+      case 'time':
+        return _tempClockSpacing;
+      case 'favorites':
+        return _tempFavoritesSpacing;
+      case 'sidebar':
+        return _tempSidebarSpacing;
+      default:
+        return _tempClockSpacing;
+    }
+  }
+
+  void _updateSelectedSpacing(double delta) {
+    setState(() {
+      switch (_selectedSpacingType) {
+        case 'time':
+          _tempClockSpacing = (_tempClockSpacing + delta).clamp(0.0, 200.0);
+          widget.onClockSpacingChanged(_tempClockSpacing);
+          break;
+        case 'favorites':
+          _tempFavoritesSpacing = (_tempFavoritesSpacing + delta).clamp(
+            0.0,
+            100.0,
+          );
+          widget.onFavoritesSpacingChanged(_tempFavoritesSpacing);
+          break;
+        case 'sidebar':
+          _tempSidebarSpacing = (_tempSidebarSpacing + delta).clamp(0.0, 100.0);
+          widget.onSidebarSpacingChanged(_tempSidebarSpacing);
+          break;
+      }
+    });
   }
 
   @override
@@ -320,12 +432,44 @@ class _LayoutAdjustmentOverlayState extends State<_LayoutAdjustmentOverlay> {
     // TimeHeader is approximately 120px tall (statusBarHeight + 8 + clock height + weather)
     // Let's calculate the position for the drag handle
     final timeHeaderHeight = statusBarHeight + 112;
-    final handleTop = timeHeaderHeight + _tempSpacing;
+    final handleTop = timeHeaderHeight + _tempClockSpacing;
 
     return Stack(
       children: [
         // Semi-transparent overlay
-        Container(color: Colors.black.withValues(alpha: 0.6)),
+        Container(color: const Color(0x88000000)),
+
+        // Selection chips at the top
+        Positioned(
+          left: 16,
+          right: 16,
+          top: statusBarHeight + 16,
+          child: Column(
+            children: [
+              // Chip buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildSpacingChip('time', 'Time'),
+                  const SizedBox(width: 8),
+                  _buildSpacingChip('favorites', 'Favorites'),
+                  const SizedBox(width: 8),
+                  _buildSpacingChip('sidebar', 'Sidebar'),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // Current value display
+              Text(
+                '${_currentSelectedSpacing.toStringAsFixed(1)} px',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.secondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
 
         // Drag handle line and pill
         Positioned(
@@ -333,20 +477,13 @@ class _LayoutAdjustmentOverlayState extends State<_LayoutAdjustmentOverlay> {
           right: 0,
           top: handleTop,
           child: GestureDetector(
-            onVerticalDragUpdate: (details) {
-              setState(() {
-                _tempSpacing = (_tempSpacing + details.delta.dy).clamp(
-                  0.0,
-                  200.0,
-                );
-              });
-              widget.onSpacingChanged(_tempSpacing);
-            },
+            onVerticalDragUpdate: (details) =>
+                _updateSelectedSpacing(details.delta.dy),
             child: Column(
               children: [
                 // "Drag to adjust" label
                 Text(
-                  'Drag to adjust spacing',
+                  'Drag up/down to adjust',
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.secondary,
@@ -356,7 +493,7 @@ class _LayoutAdjustmentOverlayState extends State<_LayoutAdjustmentOverlay> {
                 const SizedBox(height: 8),
                 // Drag handle pill
                 Container(
-                  width: 48,
+                  width: 80,
                   height: 6,
                   decoration: BoxDecoration(
                     color: AppColors.secondary,
@@ -384,18 +521,48 @@ class _LayoutAdjustmentOverlayState extends State<_LayoutAdjustmentOverlay> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.secondary,
               foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: 20),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
             child: const Text(
               'Done',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSpacingChip(String type, String label) {
+    final isSelected = _selectedSpacingType == type;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedSpacingType = type),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.secondary
+              : Colors.white.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.secondary
+                : Colors.white.withValues(alpha: 0.3),
+            width: 1.5,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? Colors.black : Colors.white,
+          ),
+        ),
+      ),
     );
   }
 }

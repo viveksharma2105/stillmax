@@ -25,7 +25,6 @@ class AppListTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider).valueOrNull;
-    final scale = settings?.fontScaleFactor ?? 1.0;
     final hapticsEnabled = settings?.hapticsEnabled ?? true;
     final iconTheme = ref.watch(iconThemeProvider);
 
@@ -85,13 +84,13 @@ class AppListTile extends ConsumerWidget {
           final bgColor = getColorFromPackageName(app.packageName);
 
           return Container(
-            width: 40,
-            height: 40,
+            width: 46,
+            height: 46,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(14),
               color: bgColor,
             ),
-            child: Icon(iconData, size: 20, color: Colors.white),
+            child: Icon(iconData, size: 24, color: Colors.white),
           );
 
         case AppIconTheme.cute:
@@ -100,15 +99,15 @@ class AppListTile extends ConsumerWidget {
           final bgColor = getPastelColorFromPackageName(app.packageName);
 
           return Container(
-            width: 40,
-            height: 40,
+            width: 46,
+            height: 46,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(14),
               color: bgColor,
             ),
             child: Icon(
               iconData,
-              size: 20,
+              size: 24,
               color: Colors.black.withValues(alpha: 0.7),
             ),
           );
@@ -122,17 +121,17 @@ class AppListTile extends ConsumerWidget {
                 ? app.name[0].toUpperCase()
                 : '?';
             return Container(
-              width: 40,
-              height: 40,
+              width: 46,
+              height: 46,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(14),
                 color: AppColors.secondary,
               ),
               child: Center(
                 child: Text(
                   firstLetter,
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 22,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
@@ -146,10 +145,10 @@ class AppListTile extends ConsumerWidget {
           );
 
           return Container(
-            width: 40,
-            height: 40,
+            width: 46,
+            height: 46,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(14),
               color: AppColors.surfaceContainerHigh,
             ),
             clipBehavior: Clip.antiAlias,
@@ -160,7 +159,7 @@ class AppListTile extends ConsumerWidget {
                 key: ValueKey(app.packageName),
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
-                cacheWidth: 80,
+                cacheWidth: 92,
                 errorBuilder: (context, error, stackTrace) {
                   // Fallback to letter if image fails to load
                   final firstLetter = app.name.isNotEmpty
@@ -172,7 +171,7 @@ class AppListTile extends ConsumerWidget {
                       child: Text(
                         firstLetter,
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 22,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
@@ -186,43 +185,40 @@ class AppListTile extends ConsumerWidget {
       }
     }
 
-    return Container(
-      height: 60,
-      margin: const EdgeInsets.only(bottom: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onLongPressStart: (details) => unawaited(openMenu(details)),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            splashColor: AppColors.secondary.withValues(alpha: 0.15),
-            highlightColor: AppColors.secondary.withValues(alpha: 0.08),
-            onTap: () => unawaited(launch()),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  buildIcon(),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      app.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15 * scale,
-                        fontWeight: FontWeight.w500,
-                      ),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onLongPressStart: (details) => unawaited(openMenu(details)),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => unawaited(launch()),
+          splashColor: Colors.white.withValues(alpha: 0.08),
+          highlightColor: Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            height: 64,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: SizedBox(width: 46, height: 46, child: buildIcon()),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    app.name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white,
+                      letterSpacing: 0.1,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

@@ -14,10 +14,16 @@ import '../widgets/alphabet_sidebar.dart';
 import '../widgets/glass_card.dart';
 
 class AppDrawer extends ConsumerStatefulWidget {
-  const AppDrawer({super.key, required this.onClose, this.initialLetter});
+  const AppDrawer({
+    super.key,
+    required this.onClose,
+    this.initialLetter,
+    this.showAppsInitially = false,
+  });
 
   final VoidCallback onClose;
   final String? initialLetter;
+  final bool showAppsInitially;
 
   @override
   ConsumerState<AppDrawer> createState() => _AppDrawerState();
@@ -114,6 +120,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   Widget build(BuildContext context) {
     final apps = ref.watch(filteredAppsProvider);
     final allApps = ref.watch(displayAppsProvider);
+    final searchQuery = ref.watch(searchQueryProvider);
     final wallpaper = ref.watch(wallpaperBytesProvider).valueOrNull;
     final scrollPhysics = allApps.length > 40
         ? const ClampingScrollPhysics()
@@ -190,19 +197,22 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         Expanded(
                           child: Stack(
                             children: [
-                              _GroupedAppList(
-                                apps: apps,
-                                onLaunch: _launchAndClose,
-                                scrollController: scrollController,
-                                physics: scrollPhysics,
-                                sectionKeys: _sectionKeys,
-                              ),
-                              Positioned(
-                                right: 0,
-                                top: 0,
-                                bottom: 0,
-                                child: _buildAlphabetSidebar(apps),
-                              ),
+                              searchQuery.trim().isEmpty
+                                  ? _EmptyState()
+                                  : _GroupedAppList(
+                                      apps: apps,
+                                      onLaunch: _launchAndClose,
+                                      scrollController: scrollController,
+                                      physics: scrollPhysics,
+                                      sectionKeys: _sectionKeys,
+                                    ),
+                              if (searchQuery.trim().isNotEmpty)
+                                Positioned(
+                                  right: 0,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: _buildAlphabetSidebar(apps),
+                                ),
                             ],
                           ),
                         ),
@@ -251,6 +261,27 @@ class _SearchBar extends StatelessWidget {
             isDense: true,
             contentPadding: EdgeInsets.symmetric(vertical: 12),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Text(
+          'Type to search apps',
+          style: AppTypography.bodyLarge.copyWith(
+            color: Colors.white.withValues(alpha: 0.5),
+            fontSize: 16,
+          ),
+          textAlign: TextAlign.center,
         ),
       ),
     );

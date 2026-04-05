@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../services/app_service.dart';
 import '../services/icon_resolver.dart';
@@ -158,6 +159,64 @@ class _StillmaxSettingsScreenState
     Navigator.of(context).pop();
   }
 
+  Future<void> _pickWallpaper() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(source: ImageSource.gallery);
+    if (image == null || !mounted) return;
+
+    final notifier = ref.read(wallpaperNotifierProvider);
+    final success = await notifier.setWallpaperFromImagePath(image.path);
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Wallpaper updated')));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update wallpaper')),
+      );
+    }
+  }
+
+  Future<void> _resetWallpaper() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.glassDark,
+        title: const Text('Reset Wallpaper'),
+        content: const Text('Remove custom wallpaper and use default?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    final notifier = ref.read(wallpaperNotifierProvider);
+    final success = await notifier.resetWallpaper();
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Wallpaper reset to default')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to reset wallpaper')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider).valueOrNull;
@@ -281,6 +340,43 @@ class _StillmaxSettingsScreenState
                   icon: const Icon(Icons.add),
                   label: const Text('Add app to favourites'),
                 ),
+              ),
+              const SizedBox(height: 32),
+
+              // Wallpaper Section
+              _SectionTitle(title: 'Wallpaper', scale: scale),
+              Text(
+                'Set custom background for launcher',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                  fontSize: 12 * scale,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _WallpaperPreview(scale: scale),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => unawaited(_pickWallpaper()),
+                      icon: const Icon(Icons.photo_library),
+                      label: const Text('Pick from Gallery'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => unawaited(_resetWallpaper()),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Reset'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.surfaceContainerHigh
+                            .withValues(alpha: 0.42),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 32),
 
@@ -434,6 +530,82 @@ class _StillmaxSettingsScreenState
                 ),
               ),
               const SizedBox(height: 80),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WallpaperPreview extends ConsumerWidget {
+  const _WallpaperPreview({required this.scale});
+
+  final double scale;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final wallpaperAsync = ref.watch(wallpaperBytesProvider);
+
+    return Container(
+      height: 180,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh.withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: wallpaperAsync.when(
+        data: (wallpaperBytes) {
+          if (wallpaperBytes == null || wallpaperBytes.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.wallpaper,
+                    size: 48,
+                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.5),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No custom wallpaper',
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                      fontSize: 14 * scale,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+          return Image.memory(
+            wallpaperBytes,
+            fit: BoxFit.cover,
+            width: double.infinity,
+          );
+        },
+        loading: () => Center(
+          child: CircularProgressIndicator(
+            color: AppColors.onSurfaceVariant.withValues(alpha: 0.5),
+          ),
+        ),
+        error: (_, __) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 48,
+                color: AppColors.error.withValues(alpha: 0.5),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Error loading wallpaper',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.error,
+                  fontSize: 14 * scale,
+                ),
+              ),
             ],
           ),
         ),

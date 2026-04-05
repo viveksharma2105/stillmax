@@ -191,6 +191,20 @@ public class MainActivity extends FlutterActivity {
                         case "createWidgetView":
                             createWidgetView(call.argument("appWidgetId"), result);
                             break;
+                        case "getActiveMediaSession":
+                            Map<String, Object> mediaData = MediaNotificationListener.getActiveMediaSession(this);
+                            result.success(mediaData);
+                            break;
+                        case "sendMediaAction":
+                            String action = call.argument("action");
+                            MediaNotificationListener.sendMediaAction(this, action);
+                            result.success(null);
+                            break;
+                        case "openNotificationListenerSettings":
+                            Intent intent = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
+                            startActivity(intent);
+                            result.success(null);
+                            break;
                         default:
                             result.notImplemented();
                             break;
