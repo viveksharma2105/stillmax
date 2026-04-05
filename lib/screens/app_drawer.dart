@@ -6,14 +6,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/app_service.dart';
+import '../services/icon_resolver.dart';
+import '../services/icon_theme_service.dart';
 import '../state/app_list_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/alphabet_sidebar.dart';
 import '../widgets/glass_card.dart';
 
 class AppDrawer extends ConsumerStatefulWidget {
-  const AppDrawer({super.key, required this.onClose});
+  const AppDrawer({super.key, required this.onClose, this.initialLetter});
 
   final VoidCallback onClose;
+  final String? initialLetter;
 
   @override
   ConsumerState<AppDrawer> createState() => _AppDrawerState();
@@ -23,13 +27,19 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   final AppService _service = AppService();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  final Map<String, GlobalKey> _sectionKeys = {};
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _searchFocusNode.requestFocus();
+      // Only auto-focus search bar if no initial letter is provided
+      if (widget.initialLetter == null) {
+        _searchFocusNode.requestFocus();
+      } else {
+        _scrollToLetter(widget.initialLetter!);
+      }
     });
   }
 
@@ -57,6 +67,47 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   void _dismissDrawer() {
     ref.read(searchQueryProvider.notifier).state = '';
     widget.onClose();
+  }
+
+  void _scrollToLetter(String letter) {
+    final key = _sectionKeys[letter];
+    if (key?.currentContext != null) {
+      Scrollable.ensureVisible(
+        key!.currentContext!,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  Widget _buildAlphabetSidebar(List<AppInfo> apps) {
+    final sorted = [...apps]
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    final grouped = _groupAppsByLetter(sorted);
+
+    final allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
+    final availableLetters = grouped.keys.toSet();
+
+    return AlphabetSidebar(
+      letters: allLetters,
+      availableLetters: availableLetters,
+      onLetterChanged: _scrollToLetter,
+      fontScaleFactor: 1.0,
+      isScrolling: false,
+    );
+  }
+
+  Map<String, List<AppInfo>> _groupAppsByLetter(List<AppInfo> source) {
+    final grouped = <String, List<AppInfo>>{};
+    for (final app in source) {
+      final name = app.name.trim();
+      final letter = name.isEmpty ? '#' : name[0].toUpperCase();
+      grouped.putIfAbsent(letter, () => <AppInfo>[]).add(app);
+    }
+
+    final entries = grouped.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    return Map<String, List<AppInfo>>.fromEntries(entries);
   }
 
   @override
@@ -137,11 +188,22 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         ),
                         const SizedBox(height: 12),
                         Expanded(
-                          child: _GroupedAppList(
-                            apps: apps,
-                            onLaunch: _launchAndClose,
-                            scrollController: scrollController,
-                            physics: scrollPhysics,
+                          child: Stack(
+                            children: [
+                              _GroupedAppList(
+                                apps: apps,
+                                onLaunch: _launchAndClose,
+                                scrollController: scrollController,
+                                physics: scrollPhysics,
+                                sectionKeys: _sectionKeys,
+                              ),
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                bottom: 0,
+                                child: _buildAlphabetSidebar(apps),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -201,12 +263,14 @@ class _GroupedAppList extends StatelessWidget {
     required this.onLaunch,
     required this.scrollController,
     required this.physics,
+    required this.sectionKeys,
   });
 
   final List<AppInfo> apps;
   final Future<void> Function(AppInfo app) onLaunch;
   final ScrollController scrollController;
   final ScrollPhysics physics;
+  final Map<String, GlobalKey> sectionKeys;
 
   @override
   Widget build(BuildContext context) {
@@ -214,14 +278,23 @@ class _GroupedAppList extends StatelessWidget {
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     final grouped = _groupAppsByLetter(sorted);
 
+    // Populate section keys for each letter
+    for (final letter in grouped.keys) {
+      sectionKeys.putIfAbsent(letter, () => GlobalKey());
+    }
+
     return CustomScrollView(
       controller: scrollController,
+      primary: false,
       physics: physics,
       slivers: [
         for (final entry in grouped.entries) ...[
           SliverPersistentHeader(
             pinned: true,
-            delegate: _SectionHeaderDelegate(letter: entry.key),
+            delegate: _SectionHeaderDelegate(
+              letter: entry.key,
+              sectionKey: sectionKeys[entry.key],
+            ),
           ),
           SliverList(
             delegate: SliverChildBuilderDelegate(
@@ -257,9 +330,10 @@ class _GroupedAppList extends StatelessWidget {
 }
 
 class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
-  _SectionHeaderDelegate({required this.letter});
+  _SectionHeaderDelegate({required this.letter, this.sectionKey});
 
   final String letter;
+  final GlobalKey? sectionKey;
 
   @override
   double get minExtent => 32;
@@ -274,8 +348,9 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
     bool overlapsContent,
   ) {
     return Container(
+      key: sectionKey,
       color: AppColors.surface.withValues(alpha: 0.82),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       alignment: Alignment.centerLeft,
       child: Text(
         letter,
@@ -294,14 +369,76 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 }
 
-class _AppItem extends StatelessWidget {
+class _AppItem extends ConsumerWidget {
   const _AppItem({required this.app, required this.onTap});
 
   final AppInfo app;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final iconTheme = ref.watch(iconThemeProvider);
+
+    Widget buildIcon() {
+      switch (iconTheme) {
+        case AppIconTheme.fun:
+          final iconData = funIconMap[app.packageName] ?? funFallbackIcon;
+          final bgColor = getColorFromPackageName(app.packageName);
+          return Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: bgColor,
+            ),
+            child: Icon(iconData, size: 20, color: Colors.white),
+          );
+
+        case AppIconTheme.cute:
+          final iconData = cuteIconMap[app.packageName] ?? cuteFallbackIcon;
+          final bgColor = getPastelColorFromPackageName(app.packageName);
+          return Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: bgColor,
+            ),
+            child: Icon(
+              iconData,
+              size: 20,
+              color: Colors.black.withValues(alpha: 0.7),
+            ),
+          );
+
+        case AppIconTheme.dark:
+        case AppIconTheme.defaultTheme:
+          final iconColorFilter = IconThemeService.getColorFilterForTheme(
+            iconTheme,
+          );
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: app.icon.isNotEmpty
+                ? ColorFiltered(
+                    colorFilter: iconColorFilter,
+                    child: Image.memory(
+                      app.icon,
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                      gaplessPlayback: true,
+                    ),
+                  )
+                : Container(
+                    width: 40,
+                    height: 40,
+                    color: AppColors.surfaceContainerHigh,
+                    child: const Icon(Icons.apps, size: 20),
+                  ),
+          );
+      }
+    }
+
     return SizedBox(
       height: 56,
       child: Material(
@@ -312,23 +449,7 @@ class _AppItem extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: app.icon.isNotEmpty
-                      ? Image.memory(
-                          app.icon,
-                          width: 40,
-                          height: 40,
-                          fit: BoxFit.cover,
-                          gaplessPlayback: true,
-                        )
-                      : Container(
-                          width: 40,
-                          height: 40,
-                          color: AppColors.surfaceContainerHigh,
-                          child: const Icon(Icons.apps, size: 20),
-                        ),
-                ),
+                buildIcon(),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(

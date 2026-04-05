@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/app_service.dart';
+import '../services/icon_resolver.dart';
+import '../services/icon_theme_service.dart';
 import '../state/app_list_provider.dart';
 import '../theme/app_theme.dart';
 
@@ -25,6 +27,7 @@ class AppListTile extends ConsumerWidget {
     final settings = ref.watch(settingsProvider).valueOrNull;
     final scale = settings?.fontScaleFactor ?? 1.0;
     final hapticsEnabled = settings?.hapticsEnabled ?? true;
+    final iconTheme = ref.watch(iconThemeProvider);
 
     Future<void> launch() async {
       if (hapticsEnabled) {
@@ -73,52 +76,58 @@ class AppListTile extends ConsumerWidget {
       }
     }
 
-    // Build app icon widget with null safety
+    // Build app icon widget with theme support
     Widget buildIcon() {
-      if (app.icon.isEmpty) {
-        // Show first letter if icon is missing
-        final firstLetter = app.name.isNotEmpty
-            ? app.name[0].toUpperCase()
-            : '?';
-        return Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            color: AppColors.secondary,
-          ),
-          child: Center(
-            child: Text(
-              firstLetter,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        );
-      }
+      switch (iconTheme) {
+        case AppIconTheme.fun:
+          // Fun theme: FontAwesome icons with colored backgrounds
+          final iconData = funIconMap[app.packageName] ?? funFallbackIcon;
+          final bgColor = getColorFromPackageName(app.packageName);
 
-      return Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          color: AppColors.surfaceContainerHigh,
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Image.memory(
-          app.icon,
-          fit: BoxFit.cover,
-          gaplessPlayback: true,
-          errorBuilder: (context, error, stackTrace) {
-            // Fallback to letter if image fails to load
+          return Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: bgColor,
+            ),
+            child: Icon(iconData, size: 20, color: Colors.white),
+          );
+
+        case AppIconTheme.cute:
+          // Cute theme: Lucide icons with pastel backgrounds
+          final iconData = cuteIconMap[app.packageName] ?? cuteFallbackIcon;
+          final bgColor = getPastelColorFromPackageName(app.packageName);
+
+          return Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: bgColor,
+            ),
+            child: Icon(
+              iconData,
+              size: 20,
+              color: Colors.black.withValues(alpha: 0.7),
+            ),
+          );
+
+        case AppIconTheme.dark:
+        case AppIconTheme.defaultTheme:
+          // Default and dark theme: Use original APK icons
+          if (app.icon.isEmpty) {
+            // Show first letter if icon is missing
             final firstLetter = app.name.isNotEmpty
                 ? app.name[0].toUpperCase()
                 : '?';
             return Container(
-              color: AppColors.secondary,
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: AppColors.secondary,
+              ),
               child: Center(
                 child: Text(
                   firstLetter,
@@ -130,9 +139,51 @@ class AppListTile extends ConsumerWidget {
                 ),
               ),
             );
-          },
-        ),
-      );
+          }
+
+          final iconColorFilter = IconThemeService.getColorFilterForTheme(
+            iconTheme,
+          );
+
+          return Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: AppColors.surfaceContainerHigh,
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: ColorFiltered(
+              colorFilter: iconColorFilter,
+              child: Image.memory(
+                app.icon,
+                key: ValueKey(app.packageName),
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
+                cacheWidth: 80,
+                errorBuilder: (context, error, stackTrace) {
+                  // Fallback to letter if image fails to load
+                  final firstLetter = app.name.isNotEmpty
+                      ? app.name[0].toUpperCase()
+                      : '?';
+                  return Container(
+                    color: AppColors.secondary,
+                    child: Center(
+                      child: Text(
+                        firstLetter,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
+      }
     }
 
     return Container(

@@ -2,8 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../services/app_service.dart';
+import '../services/icon_resolver.dart';
+import '../services/icon_theme_service.dart';
 import '../state/app_list_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/widget_picker_sheet.dart';
@@ -18,8 +21,8 @@ class StillmaxSettingsScreen extends ConsumerStatefulWidget {
 
 class _StillmaxSettingsScreenState
     extends ConsumerState<StillmaxSettingsScreen> {
-  Future<void> _openWidgetPicker() async {
-    await showModalBottomSheet<void>(
+  Future<void> _addHeaderWidgetSlot(bool leftSlot) async {
+    final selected = await showModalBottomSheet<AvailableWidgetInfo>(
       context: context,
       backgroundColor: AppColors.background.withValues(alpha: 0),
       isScrollControlled: true,
@@ -28,38 +31,69 @@ class _StillmaxSettingsScreenState
         child: WidgetPickerSheet(),
       ),
     );
-  }
+    if (selected == null || !mounted) return;
 
-  Future<void> _removeHomeWidget(HomeWidgetEntry entry) async {
-    final shouldDelete = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: AppColors.glassDark,
-          title: const Text('Remove Widget'),
-          content: Text(entry.label),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Remove'),
-            ),
-          ],
-        );
-      },
-    );
+    final appService = ref.read(appServiceProvider);
+    final widgetsNotifier = ref.read(widgetListProvider.notifier);
+    final settingsNotifier = ref.read(settingsNotifierProvider);
 
-    if (shouldDelete != true) {
+    final appWidgetId = await appService.allocateWidgetId();
+    if (appWidgetId == null || !mounted) return;
+    if (!await appService.bindWidget(
+          appWidgetId,
+          selected.packageName,
+          selected.className,
+        ) ||
+        !await appService.createWidgetView(appWidgetId)) {
+      await appService.deleteWidgetId(appWidgetId);
       return;
     }
+    if (!mounted) return;
+    await widgetsNotifier.addWidget(
+      appWidgetId: appWidgetId,
+      label: selected.label,
+      providerPackage: selected.packageName,
+      providerClass: selected.className,
+      minWidth: selected.minWidth,
+      minHeight: selected.minHeight,
+    );
+    if (!mounted) return;
+    if (leftSlot) {
+      await settingsNotifier.setLeftWidgetSlot(appWidgetId);
+    } else {
+      await settingsNotifier.setRightWidgetSlot(appWidgetId);
+    }
+  }
 
-    final service = ref.read(appServiceProvider);
-    final widgetsNotifier = ref.read(homeWidgetsProvider.notifier);
-    await service.deleteWidgetId(entry.appWidgetId);
-    await widgetsNotifier.removeWidget(entry.appWidgetId);
+  Future<void> _removeHeaderWidgetSlot(int widgetId, bool leftSlot) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.glassDark,
+        title: const Text('Remove Widget'),
+        content: const Text('Remove this widget slot?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    await ref.read(appServiceProvider).deleteWidgetId(widgetId);
+    if (!mounted) return;
+    await ref.read(widgetListProvider.notifier).removeWidget(widgetId);
+    if (!mounted) return;
+    if (leftSlot) {
+      await ref.read(settingsNotifierProvider).setLeftWidgetSlot(null);
+    } else {
+      await ref.read(settingsNotifierProvider).setRightWidgetSlot(null);
+    }
   }
 
   Future<void> _addFavourite() async {
@@ -114,12 +148,25 @@ class _StillmaxSettingsScreenState
     await notifier.updateFontScale(scale);
   }
 
+  Future<void> _updateIconTheme(AppIconTheme theme) async {
+    await ref.read(iconThemeProvider.notifier).setTheme(theme);
+  }
+
+  Future<void> _enterLayoutAdjustMode() async {
+    ref.read(layoutAdjustModeProvider.notifier).state = true;
+    if (!mounted) return;
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider).valueOrNull;
     final scale = settings?.fontScaleFactor ?? 1.0;
     final clockStyle = settings?.clockStyle ?? 'digital';
-    final homeWidgets = ref.watch(homeWidgetsProvider);
+    final leftWidgetSlotId = settings?.leftWidgetSlotId;
+    final rightWidgetSlotId = settings?.rightWidgetSlotId;
+    final iconTheme = ref.watch(iconThemeProvider);
+    final iconColorFilter = IconThemeService.getColorFilterForTheme(iconTheme);
     final starredPackages = ref.watch(starredAppsProvider);
     final apps = ref.watch(displayAppsProvider);
     final starredApps = apps
@@ -138,6 +185,7 @@ class _StillmaxSettingsScreenState
       ),
       body: SafeArea(
         child: SingleChildScrollView(
+          primary: false,
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,7 +240,13 @@ class _StillmaxSettingsScreenState
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: app.icon.isNotEmpty
-                                ? Image.memory(app.icon, fit: BoxFit.cover)
+                                ? ColorFiltered(
+                                    colorFilter: iconColorFilter,
+                                    child: Image.memory(
+                                      app.icon,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
                                 : const Icon(Icons.apps),
                           ),
                         ),
@@ -230,68 +284,73 @@ class _StillmaxSettingsScreenState
               ),
               const SizedBox(height: 32),
 
-              // Widgets Section
-              _SectionTitle(title: 'Home Screen Widgets', scale: scale),
-              const SizedBox(height: 12),
-              if (homeWidgets.isEmpty)
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerHigh.withValues(
-                      alpha: 0.42,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'No widgets added',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.onSurfaceVariant,
-                      fontSize: 14 * scale,
-                    ),
-                  ),
-                )
-              else
-                for (final entry in homeWidgets)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerHigh.withValues(
-                        alpha: 0.42,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.widgets, color: AppColors.secondary),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            entry.label,
-                            style: AppTypography.bodyLarge.copyWith(
-                              color: AppColors.onSurface,
-                              fontSize: 15 * scale,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.delete_outline,
-                            color: AppColors.error,
-                          ),
-                          onPressed: () => unawaited(_removeHomeWidget(entry)),
-                        ),
-                      ],
-                    ),
-                  ),
+              // Layout Section
+              _SectionTitle(title: 'Layout', scale: scale),
+              Text(
+                'Adjust spacing between sections',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                  fontSize: 12 * scale,
+                ),
+              ),
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () => unawaited(_openWidgetPicker()),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Widget'),
+                  onPressed: () => unawaited(_enterLayoutAdjustMode()),
+                  icon: const Icon(Icons.tune),
+                  label: const Text('Adjust Layout Spacing'),
                 ),
+              ),
+              const SizedBox(height: 32),
+
+              // Header Widget Slots
+              _SectionTitle(title: 'Header Widget Slots', scale: scale),
+              const SizedBox(height: 12),
+              _HeaderWidgetSlotCard(
+                title: 'Left Widget Slot',
+                widgetId: leftWidgetSlotId,
+                onAdd: () => unawaited(_addHeaderWidgetSlot(true)),
+                onRemove: leftWidgetSlotId == null
+                    ? null
+                    : () => unawaited(
+                        _removeHeaderWidgetSlot(leftWidgetSlotId, true),
+                      ),
+                scale: scale,
+              ),
+              const SizedBox(height: 12),
+              _HeaderWidgetSlotCard(
+                title: 'Right Widget Slot',
+                widgetId: rightWidgetSlotId,
+                onAdd: () => unawaited(_addHeaderWidgetSlot(false)),
+                onRemove: rightWidgetSlotId == null
+                    ? null
+                    : () => unawaited(
+                        _removeHeaderWidgetSlot(rightWidgetSlotId, false),
+                      ),
+                scale: scale,
+              ),
+              const SizedBox(height: 32),
+
+              // Icon Theme Section
+              _SectionTitle(title: 'Icon Theme', scale: scale),
+              const SizedBox(height: 12),
+              GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 100 / 90,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  for (final theme in AppIconTheme.values)
+                    _IconThemeCard(
+                      theme: theme,
+                      selected: theme == iconTheme,
+                      previewApps: apps.take(3).toList(growable: false),
+                      onTap: () => unawaited(_updateIconTheme(theme)),
+                    ),
+                ],
               ),
               const SizedBox(height: 32),
 
@@ -402,6 +461,59 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
+class _HeaderWidgetSlotCard extends StatelessWidget {
+  const _HeaderWidgetSlotCard({
+    required this.title,
+    required this.widgetId,
+    required this.onAdd,
+    required this.onRemove,
+    required this.scale,
+  });
+
+  final String title;
+  final int? widgetId;
+  final VoidCallback onAdd;
+  final VoidCallback? onRemove;
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh.withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTypography.bodyLarge.copyWith(fontSize: 15 * scale),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  widgetId == null ? 'None' : 'Widget #$widgetId',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    fontSize: 12 * scale,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(onPressed: onAdd, child: const Text('Add')),
+          if (onRemove != null)
+            TextButton(onPressed: onRemove, child: const Text('Remove')),
+        ],
+      ),
+    );
+  }
+}
+
 class _ClockStyleOption extends StatelessWidget {
   const _ClockStyleOption({
     required this.label,
@@ -461,6 +573,148 @@ class _ClockStyleOption extends StatelessWidget {
   }
 }
 
+class _IconThemeCard extends StatelessWidget {
+  const _IconThemeCard({
+    required this.theme,
+    required this.selected,
+    required this.previewApps,
+    required this.onTap,
+  });
+
+  final AppIconTheme theme;
+  final bool selected;
+  final List<AppInfo> previewApps;
+  final VoidCallback onTap;
+
+  Widget _buildIconWithTheme(AppInfo app) {
+    switch (theme) {
+      case AppIconTheme.defaultTheme:
+        return app.icon.isNotEmpty
+            ? Image.memory(
+                app.icon,
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
+                cacheWidth: 80,
+              )
+            : const Icon(Icons.apps, size: 16);
+
+      case AppIconTheme.dark:
+        final filter = IconThemeService.getColorFilterForTheme(theme);
+        return app.icon.isNotEmpty
+            ? ColorFiltered(
+                colorFilter: filter,
+                child: Image.memory(
+                  app.icon,
+                  fit: BoxFit.cover,
+                  gaplessPlayback: true,
+                  cacheWidth: 80,
+                ),
+              )
+            : const Icon(Icons.apps, size: 16);
+
+      case AppIconTheme.fun:
+        final iconData = funIconMap[app.packageName] ?? funFallbackIcon;
+        final bgColor = getColorFromPackageName(app.packageName);
+        return Container(
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(7),
+          ),
+          child: Center(child: FaIcon(iconData, size: 16, color: Colors.white)),
+        );
+
+      case AppIconTheme.cute:
+        final iconData = cuteIconMap[app.packageName] ?? cuteFallbackIcon;
+        final bgColor = getPastelColorFromPackageName(app.packageName);
+        return Container(
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(7),
+          ),
+          child: Center(
+            child: Icon(
+              iconData,
+              size: 16,
+              color: Colors.black.withValues(alpha: 0.7),
+            ),
+          ),
+        );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 100,
+        height: 90,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: selected
+              ? Border.all(color: AppColors.secondary, width: 2)
+              : Border.all(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  width: 1,
+                ),
+        ),
+        child: Stack(
+          children: [
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    for (final app in previewApps)
+                      Container(
+                        width: 28,
+                        height: 28,
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(7),
+                          color:
+                              theme == AppIconTheme.fun ||
+                                  theme == AppIconTheme.cute
+                              ? Colors.transparent
+                              : AppColors.surfaceContainerHigh,
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: _buildIconWithTheme(app),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  IconThemeService.getThemeName(theme),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            if (selected)
+              const Positioned(
+                top: 0,
+                right: 0,
+                child: Icon(
+                  Icons.check_circle,
+                  color: AppColors.secondary,
+                  size: 16,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AppPickerSheet extends ConsumerStatefulWidget {
   const _AppPickerSheet({required this.apps, required this.currentStarred});
 
@@ -478,6 +732,7 @@ class _AppPickerSheetState extends ConsumerState<_AppPickerSheet> {
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider).valueOrNull;
     final scale = settings?.fontScaleFactor ?? 1.0;
+    final iconTheme = ref.watch(iconThemeProvider);
 
     final filteredApps = widget.apps
         .where((app) {
@@ -550,7 +805,13 @@ class _AppPickerSheetState extends ConsumerState<_AppPickerSheet> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: app.icon.isNotEmpty
-                          ? Image.memory(app.icon, fit: BoxFit.cover)
+                          ? ColorFiltered(
+                              colorFilter:
+                                  IconThemeService.getColorFilterForTheme(
+                                    iconTheme,
+                                  ),
+                              child: Image.memory(app.icon, fit: BoxFit.cover),
+                            )
                           : const Icon(Icons.apps),
                     ),
                   ),

@@ -11,22 +11,30 @@ import 'screens/onboarding_screen.dart';
 import 'state/app_list_provider.dart';
 import 'theme/app_theme.dart';
 
+Future<void> _logErrorToFile(String message) async {
+  try {
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/stillmax_errors.log');
+    await file.writeAsString(
+      '[${DateTime.now()}] $message\n',
+      mode: FileMode.append,
+    );
+  } catch (_) {
+    // Ignore logging errors
+  }
+}
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  FlutterError.onError = (details) async {
-    final dir = await getApplicationDocumentsDirectory();
-    await File(
-      '${dir.path}/crash.log',
-    ).writeAsString(details.exceptionAsString());
-    runApp(const ProviderScope(child: StillmaxApp()));
+
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    unawaited(_logErrorToFile(details.toString()));
   };
+
   PlatformDispatcher.instance.onError = (error, stack) {
-    unawaited(() async {
-      final dir = await getApplicationDocumentsDirectory();
-      await File('${dir.path}/crash.log').writeAsString(error.toString());
-      runApp(const ProviderScope(child: StillmaxApp()));
-    }());
+    unawaited(_logErrorToFile('$error\n$stack'));
     return true;
   };
 

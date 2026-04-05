@@ -23,14 +23,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _finish() async {
-    final isar = await ref.read(isarProvider.future);
-    await isar.writeTxn(() async {
-      await isar.onboardingDbs.put(
-        OnboardingDb()
-          ..id = 1
-          ..hasOnboarded = true,
-      );
-    });
+    try {
+      final isar = await ref.read(isarProvider.future);
+      await isar.writeTxn(() async {
+        await isar.onboardingDbs.put(
+          OnboardingDb()
+            ..id = 1
+            ..hasOnboarded = true,
+        );
+      });
+    } catch (e) {
+      debugPrint('Onboarding finish error: $e');
+    }
   }
 
   Future<void> _next() async {

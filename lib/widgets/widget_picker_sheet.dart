@@ -70,24 +70,10 @@ class WidgetPickerSheet extends ConsumerWidget {
                         return _WidgetTile(
                           info: item,
                           onTap: () async {
-                            final messenger = ScaffoldMessenger.of(context);
-                            final success = await _selectWidget(ref, item);
                             if (!context.mounted) {
                               return;
                             }
-                            if (success) {
-                              Navigator.of(context).pop();
-                            } else {
-                              messenger
-                                ..hideCurrentSnackBar()
-                                ..showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Could not add widget. Try another one.',
-                                    ),
-                                  ),
-                                );
-                            }
+                            Navigator.of(context).pop(item);
                           },
                         );
                       },
@@ -117,42 +103,6 @@ class WidgetPickerSheet extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  Future<bool> _selectWidget(WidgetRef ref, AvailableWidgetInfo info) async {
-    final appService = ref.read(appServiceProvider);
-    final widgetsNotifier = ref.read(homeWidgetsProvider.notifier);
-
-    final appWidgetId = await appService.allocateWidgetId();
-    if (appWidgetId == null) {
-      return false;
-    }
-
-    final bound = await appService.bindWidget(
-      appWidgetId,
-      info.packageName,
-      info.className,
-    );
-    if (!bound) {
-      await appService.deleteWidgetId(appWidgetId);
-      return false;
-    }
-
-    final canCreateView = await appService.createWidgetView(appWidgetId);
-    if (!canCreateView) {
-      await appService.deleteWidgetId(appWidgetId);
-      return false;
-    }
-
-    await widgetsNotifier.addWidget(
-      appWidgetId: appWidgetId,
-      label: info.label,
-      providerPackage: info.packageName,
-      providerClass: info.className,
-      minWidth: info.minWidth,
-      minHeight: info.minHeight,
-    );
-    return true;
   }
 }
 

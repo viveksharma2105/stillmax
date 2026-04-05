@@ -24,6 +24,8 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
 import android.net.Uri;
@@ -41,11 +43,12 @@ import androidx.core.content.ContextCompat;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Locale;
 
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
@@ -71,6 +74,7 @@ public class MainActivity extends FlutterActivity {
     private MethodChannel.Result pendingBindResult;
     private int pendingWidgetId = INVALID_APP_WIDGET_ID;
     private AppWidgetProviderInfo pendingProviderInfo;
+    private boolean widgetViewFactoryRegistered = false;
 
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
@@ -92,10 +96,13 @@ public class MainActivity extends FlutterActivity {
         registerPackageChangeReceiver();
 
         ensureAppWidgetHost();
-        flutterEngine
-                .getPlatformViewsController()
-                .getRegistry()
-                .registerViewFactory(WIDGET_VIEW_TYPE, new WidgetViewFactory());
+        if (!widgetViewFactoryRegistered) {
+            flutterEngine
+                    .getPlatformViewsController()
+                    .getRegistry()
+                    .registerViewFactory(WIDGET_VIEW_TYPE, new WidgetViewFactory());
+            widgetViewFactoryRegistered = true;
+        }
 
         new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), METHOD_CHANNEL)
                 .setMethodCallHandler((call, result) -> {
@@ -161,6 +168,9 @@ public class MainActivity extends FlutterActivity {
                         case "getDeviceLocation":
                             getDeviceLocation(result);
                             break;
+                        case "getLocationName":
+                            getLocationName(call.argument("latitude"), call.argument("longitude"), result);
+                            break;
                         case "getAvailableWidgets":
                             getAvailableWidgets(result);
                             break;
@@ -224,20 +234,30 @@ public class MainActivity extends FlutterActivity {
     }
 
     @Override
-    protected void onStart() {
-        super.onStart();
-        ensureAppWidgetHost();
+    protected void onResume() {
+        super.onResume();
         if (appWidgetHost != null) {
             appWidgetHost.startListening();
         }
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
+    protected void onPause() {
+        super.onPause();
         if (appWidgetHost != null) {
             appWidgetHost.stopListening();
         }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        ensureAppWidgetHost();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
     }
 
     private void registerPackageChangeReceiver() {
@@ -317,6 +337,46 @@ public class MainActivity extends FlutterActivity {
         } catch (Exception e) {
             result.success(null);
         }
+    }
+
+    private final Map<String, String> locationNameCache = new HashMap<>();
+
+    private void getLocationName(Double latitude, Double longitude, MethodChannel.Result result) {
+        try {
+            if (latitude == null || longitude == null) {
+                result.success(null);
+                return;
+            }
+
+            String cacheKey = latitude + "," + longitude;
+            if (locationNameCache.containsKey(cacheKey)) {
+                result.success(locationNameCache.get(cacheKey));
+                return;
+            }
+
+            String city = getCityName(latitude, longitude);
+            locationNameCache.put(cacheKey, city);
+            result.success(city);
+        } catch (Exception e) {
+            result.success(null);
+        }
+    }
+
+    private String getCityName(double lat, double lon) {
+        try {
+            Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+            List<Address> addresses = geocoder.getFromLocation(lat, lon, 1);
+            if (addresses != null && !addresses.isEmpty()) {
+                Address address = addresses.get(0);
+                String city = address.getLocality();
+                if (city == null) city = address.getSubAdminArea();
+                if (city == null) city = address.getAdminArea();
+                return city != null ? city : "Unknown";
+            }
+        } catch (Exception e) {
+            android.util.Log.e("MainActivity", "Geocoding failed", e);
+        }
+        return "Unknown";
     }
 
     private void getAvailableWidgets(MethodChannel.Result result) {

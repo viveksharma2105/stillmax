@@ -11,6 +11,7 @@ import '../state/app_list_provider.dart';
 class WeatherInfo {
   const WeatherInfo({
     required this.city,
+    required this.cityName,
     required this.temperatureC,
     required this.condition,
     required this.conditionCode,
@@ -18,6 +19,7 @@ class WeatherInfo {
   });
 
   final String city;
+  final String? cityName;
   final double temperatureC;
   final String condition;
   final String conditionCode;
@@ -30,15 +32,26 @@ class WeatherInfo {
   }
 }
 
-final weatherInfoProvider = StreamProvider<WeatherInfo?>((ref) async* {
+String? _cachedLocationName;
+DateTime? _cachedLocationNameAt;
+
+final weatherInfoProvider = StreamProvider.autoDispose<WeatherInfo?>((
+  ref,
+) async* {
   final isar = await ref.watch(isarProvider.future);
   final appService = ref.watch(appServiceProvider);
+
+  var disposed = false;
+  ref.onDispose(() {
+    disposed = true;
+  });
 
   WeatherInfo? latest;
   final cached = await isar.weatherCacheDbs.get(1);
   if (cached != null) {
     latest = WeatherInfo(
       city: cached.city,
+      cityName: cached.city,
       temperatureC: cached.temperature,
       condition: cached.condition,
       conditionCode: cached.conditionCode,
@@ -49,10 +62,11 @@ final weatherInfoProvider = StreamProvider<WeatherInfo?>((ref) async* {
     yield null;
   }
 
-  while (true) {
+  while (!disposed) {
     var success = false;
     try {
       final fresh = await _fetchWeatherInfo(appService);
+      if (disposed) break;
       if (fresh != null) {
         await isar.writeTxn(() async {
           await isar.weatherCacheDbs.put(
@@ -77,6 +91,7 @@ final weatherInfoProvider = StreamProvider<WeatherInfo?>((ref) async* {
       yield null;
     }
 
+    if (disposed) break;
     await Future<void>.delayed(
       success ? const Duration(minutes: 30) : const Duration(minutes: 2),
     );
@@ -113,16 +128,51 @@ Future<WeatherInfo?> _fetchWeatherInfo(AppService appService) async {
   }
 
   final conditionCode = current['weatherCode']?.toString() ?? '';
-  final city =
-      _extractCity(payload) ?? (location == null ? 'Local' : 'Current');
+  final city = await _getCityName(appService, location, payload);
 
   return WeatherInfo(
     city: city,
+    cityName: city,
     temperatureC: temperatureC,
     condition: condition,
     conditionCode: conditionCode,
     lastFetched: DateTime.now(),
   );
+}
+
+Future<String> _getCityName(
+  AppService appService,
+  LatLng? location,
+  Map<String, dynamic> payload,
+) async {
+  final now = DateTime.now();
+  if (_cachedLocationName != null && _cachedLocationNameAt != null) {
+    if (now.difference(_cachedLocationNameAt!) < const Duration(hours: 1)) {
+      return _cachedLocationName!;
+    }
+  }
+
+  final cached = _extractCity(payload);
+  if (cached != null && cached.isNotEmpty) {
+    _cachedLocationName = cached;
+    _cachedLocationNameAt = now;
+    return cached;
+  }
+
+  if (location != null) {
+    final resolved = await appService.getLocationName(
+      location.latitude,
+      location.longitude,
+    );
+    final city = resolved?.trim();
+    if (city != null && city.isNotEmpty && city.toLowerCase() != 'unknown') {
+      _cachedLocationName = city;
+      _cachedLocationNameAt = now;
+      return city;
+    }
+  }
+
+  return _cachedLocationName ?? 'Current';
 }
 
 Future<Map<String, dynamic>?> _fetchWttrPayload(LatLng? location) async {
@@ -241,6 +291,7 @@ class WeatherWidget extends ConsumerWidget {
         ? '--°'
         : '${weather.temperatureC.round()}°';
     final condition = weather?.shortCondition ?? 'LOADING';
+    final cityName = weather?.cityName;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -262,6 +313,16 @@ class WeatherWidget extends ConsumerWidget {
               color: Colors.white,
             ),
           ),
+          if (cityName != null && cityName.isNotEmpty) ...[
+            const SizedBox(height: 1),
+            Text(
+              cityName,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.white.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
           const SizedBox(height: 1),
           Text(
             condition,

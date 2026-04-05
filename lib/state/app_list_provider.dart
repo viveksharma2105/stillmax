@@ -73,6 +73,11 @@ class SettingsDb {
   late double fontScaleFactor;
   late bool hapticsEnabled;
   late String clockStyle; // 'digital', 'digital_thin', 'analog'
+  late int iconTheme; // AppIconTheme index
+  late double
+  clockSpacing; // spacing between clock header and favourites (default 40.0)
+  int? leftWidgetSlotId; // appWidgetId for left slot in TimeHeader PageView
+  int? rightWidgetSlotId; // appWidgetId for right slot in TimeHeader PageView
 }
 
 @collection
@@ -171,6 +176,26 @@ class HomeWidgetDb {
 
 enum IconShape { circle, rounded, teardrop, squarish }
 
+SettingsDb _defaultSettingsDb() {
+  return SettingsDb()
+    ..gridColumns = 4
+    ..iconSize = 56
+    ..showLabels = true
+    ..fontSize = 1
+    ..dockIconCount = 5
+    ..showDockLabels = false
+    ..doubleTapAction = 0
+    ..swipeLeftAction = 0
+    ..pinchAction = 0
+    ..showRecents = true
+    ..iconShape = 1
+    ..fontScaleFactor = 1.0
+    ..hapticsEnabled = true
+    ..clockStyle = 'digital'
+    ..iconTheme = AppIconTheme.defaultTheme.index
+    ..clockSpacing = 40.0;
+}
+
 final isarProvider = FutureProvider<Isar>((ref) async {
   final dir = await getApplicationDocumentsDirectory();
   return Isar.open([
@@ -195,23 +220,7 @@ final settingsProvider = StreamProvider<SettingsDb>((ref) async* {
   final existing = await isar.settingsDbs.get(1);
   if (existing != null) yield existing;
   yield* isar.settingsDbs.watchObject(1, fireImmediately: true).map((v) {
-    return v ??
-        (existing ??
-            (SettingsDb()
-              ..gridColumns = 4
-              ..iconSize = 56
-              ..showLabels = true
-              ..fontSize = 1
-              ..dockIconCount = 5
-              ..showDockLabels = false
-              ..doubleTapAction = 0
-              ..swipeLeftAction = 0
-              ..pinchAction = 0
-              ..showRecents = true
-              ..iconShape = 1
-              ..fontScaleFactor = 1.0
-              ..hapticsEnabled = true
-              ..clockStyle = 'digital'));
+    return v ?? (existing ?? _defaultSettingsDb());
   });
 });
 
@@ -336,9 +345,7 @@ final onboardingProvider = StreamProvider<OnboardingDb?>((ref) async* {
   Future<OnboardingDb?> load() async => isar.onboardingDbs.get(1);
 
   yield await load();
-  yield* isar.onboardingDbs
-      .watchLazy(fireImmediately: true)
-      .asyncMap((_) => load());
+  yield* isar.onboardingDbs.watchObject(1, fireImmediately: true);
 });
 
 class HomeWidgetEntry {
@@ -361,22 +368,18 @@ class HomeWidgetEntry {
   final int position;
 }
 
-final homeWidgetsProvider =
-    NotifierProvider<HomeWidgetsNotifier, List<HomeWidgetEntry>>(
-      HomeWidgetsNotifier.new,
+final widgetListProvider =
+    AsyncNotifierProvider<WidgetListNotifier, List<HomeWidgetEntry>>(
+      WidgetListNotifier.new,
     );
 
-class HomeWidgetsNotifier extends Notifier<List<HomeWidgetEntry>> {
-  @override
-  List<HomeWidgetEntry> build() {
-    unawaited(_load());
-    return const <HomeWidgetEntry>[];
-  }
+final homeWidgetsProvider = widgetListProvider;
 
-  Future<void> _load() async {
+class WidgetListNotifier extends AsyncNotifier<List<HomeWidgetEntry>> {
+  Future<List<HomeWidgetEntry>> _loadFromIsar() async {
     final isar = await ref.read(isarProvider.future);
     final rows = await isar.homeWidgetDbs.where().sortByPosition().findAll();
-    state = rows
+    return rows
         .map(
           (row) => HomeWidgetEntry(
             appWidgetId: row.appWidgetId,
@@ -391,6 +394,16 @@ class HomeWidgetsNotifier extends Notifier<List<HomeWidgetEntry>> {
         .toList(growable: false);
   }
 
+  @override
+  Future<List<HomeWidgetEntry>> build() async {
+    return _loadFromIsar();
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncValue.loading();
+    state = AsyncValue.data(await _loadFromIsar());
+  }
+
   Future<void> addWidget({
     required int appWidgetId,
     required String label,
@@ -399,26 +412,13 @@ class HomeWidgetsNotifier extends Notifier<List<HomeWidgetEntry>> {
     required int minWidth,
     required int minHeight,
   }) async {
-    if (state.any((entry) => entry.appWidgetId == appWidgetId)) {
+    final current = state.valueOrNull ?? await _loadFromIsar();
+    if (current.any((entry) => entry.appWidgetId == appWidgetId)) {
       return;
     }
 
     final isar = await ref.read(isarProvider.future);
-    final nextPosition = state.length;
-    final next = [
-      ...state,
-      HomeWidgetEntry(
-        appWidgetId: appWidgetId,
-        label: label,
-        providerPackage: providerPackage,
-        providerClass: providerClass,
-        minWidth: minWidth,
-        minHeight: minHeight,
-        position: nextPosition,
-      ),
-    ];
-    state = next;
-
+    final nextPosition = current.length;
     await isar.writeTxn(
       () => isar.homeWidgetDbs.putByAppWidgetId(
         HomeWidgetDb()
@@ -431,26 +431,88 @@ class HomeWidgetsNotifier extends Notifier<List<HomeWidgetEntry>> {
           ..position = nextPosition,
       ),
     );
+    await refresh();
   }
 
   Future<void> removeWidget(int appWidgetId) async {
     final isar = await ref.read(isarProvider.future);
-    final remaining = state
-        .where((entry) => entry.appWidgetId != appWidgetId)
-        .toList(growable: false);
-    state = remaining;
-
     await isar.writeTxn(() async {
       await isar.homeWidgetDbs.deleteByAppWidgetId(appWidgetId);
+      final remaining = await isar.homeWidgetDbs
+          .where()
+          .sortByPosition()
+          .findAll();
       for (var i = 0; i < remaining.length; i++) {
+        if (remaining[i].position == i) continue;
+        remaining[i].position = i;
+        await isar.homeWidgetDbs.put(remaining[i]);
+      }
+    });
+    await refresh();
+  }
+
+  Future<void> reorderWidgets(int oldIndex, int newIndex) async {
+    final current = [...(state.valueOrNull ?? await _loadFromIsar())];
+    if (oldIndex < 0 || oldIndex >= current.length) return;
+    if (newIndex < 0 || newIndex >= current.length) return;
+
+    final item = current.removeAt(oldIndex);
+    current.insert(newIndex, item);
+
+    final isar = await ref.read(isarProvider.future);
+    await isar.writeTxn(() async {
+      for (var i = 0; i < current.length; i++) {
+        final entry = current[i];
         final row = await isar.homeWidgetDbs.getByAppWidgetId(
-          remaining[i].appWidgetId,
+          entry.appWidgetId,
         );
-        if (row == null || row.position == i) continue;
+        if (row == null) continue;
         row.position = i;
         await isar.homeWidgetDbs.put(row);
       }
     });
+    await refresh();
+  }
+}
+
+final iconThemeProvider = NotifierProvider<IconThemeNotifier, AppIconTheme>(
+  IconThemeNotifier.new,
+);
+
+class IconThemeNotifier extends Notifier<AppIconTheme> {
+  @override
+  AppIconTheme build() {
+    unawaited(_loadTheme());
+    return AppIconTheme.defaultTheme;
+  }
+
+  Future<void> _loadTheme() async {
+    final isar = await ref.read(isarProvider.future);
+    final settings = await isar.settingsDbs.get(1);
+    if (settings == null) {
+      await isar.writeTxn(() async {
+        await isar.settingsDbs.put(_defaultSettingsDb());
+      });
+      state = AppIconTheme.defaultTheme;
+      return;
+    }
+
+    final index = settings.iconTheme;
+    if (index < 0 || index >= AppIconTheme.values.length) {
+      state = AppIconTheme.defaultTheme;
+      return;
+    }
+    state = AppIconTheme.values[index];
+  }
+
+  Future<void> setTheme(AppIconTheme theme) async {
+    final isar = await ref.read(isarProvider.future);
+    await isar.writeTxn(() async {
+      final settings = await isar.settingsDbs.get(1) ?? _defaultSettingsDb();
+      settings.iconTheme = theme.index;
+      await isar.settingsDbs.put(settings);
+    });
+    state = theme;
   }
 }
 
@@ -541,6 +603,8 @@ final groupedAppsProvider = Provider<Map<String, List<AppInfo>>>((ref) {
 });
 
 final searchQueryProvider = StateProvider<String>((ref) => '');
+
+final layoutAdjustModeProvider = StateProvider<bool>((ref) => false);
 
 final displayAppsProvider = Provider<List<AppInfo>>((ref) {
   final apps = ref.watch(appListProvider).valueOrNull ?? const <AppInfo>[];
@@ -847,23 +911,8 @@ class SettingsNotifier {
         settings.clockStyle = style;
         await isar.settingsDbs.put(settings);
       } else {
-        await isar.settingsDbs.put(
-          SettingsDb()
-            ..gridColumns = 4
-            ..iconSize = 56
-            ..showLabels = true
-            ..fontSize = 1
-            ..dockIconCount = 5
-            ..showDockLabels = false
-            ..doubleTapAction = 0
-            ..swipeLeftAction = 0
-            ..pinchAction = 0
-            ..showRecents = true
-            ..iconShape = 1
-            ..fontScaleFactor = 1.0
-            ..hapticsEnabled = true
-            ..clockStyle = style,
-        );
+        final next = _defaultSettingsDb()..clockStyle = style;
+        await isar.settingsDbs.put(next);
       }
     });
   }
@@ -871,11 +920,36 @@ class SettingsNotifier {
   Future<void> updateFontScale(double scale) async {
     final isar = await ref.read(isarProvider.future);
     await isar.writeTxn(() async {
-      final settings = await isar.settingsDbs.get(1);
-      if (settings != null) {
-        settings.fontScaleFactor = scale;
-        await isar.settingsDbs.put(settings);
-      }
+      final settings = await isar.settingsDbs.get(1) ?? _defaultSettingsDb();
+      settings.fontScaleFactor = scale;
+      await isar.settingsDbs.put(settings);
+    });
+  }
+
+  Future<void> updateClockSpacing(double spacing) async {
+    final isar = await ref.read(isarProvider.future);
+    await isar.writeTxn(() async {
+      final settings = await isar.settingsDbs.get(1) ?? _defaultSettingsDb();
+      settings.clockSpacing = spacing;
+      await isar.settingsDbs.put(settings);
+    });
+  }
+
+  Future<void> setLeftWidgetSlot(int? widgetId) async {
+    final isar = await ref.read(isarProvider.future);
+    await isar.writeTxn(() async {
+      final settings = await isar.settingsDbs.get(1) ?? _defaultSettingsDb();
+      settings.leftWidgetSlotId = widgetId;
+      await isar.settingsDbs.put(settings);
+    });
+  }
+
+  Future<void> setRightWidgetSlot(int? widgetId) async {
+    final isar = await ref.read(isarProvider.future);
+    await isar.writeTxn(() async {
+      final settings = await isar.settingsDbs.get(1) ?? _defaultSettingsDb();
+      settings.rightWidgetSlotId = widgetId;
+      await isar.settingsDbs.put(settings);
     });
   }
 }

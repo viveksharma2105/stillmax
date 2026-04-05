@@ -2,14 +2,17 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/app_service.dart';
 import '../services/icon_cache.dart';
+import '../services/icon_resolver.dart';
+import '../services/icon_theme_service.dart';
 import '../state/app_list_provider.dart';
 import '../theme/app_theme.dart';
 import 'glass_card.dart';
 
-class GridAppIcon extends StatefulWidget {
+class GridAppIcon extends ConsumerStatefulWidget {
   const GridAppIcon({
     super.key,
     required this.app,
@@ -42,10 +45,10 @@ class GridAppIcon extends StatefulWidget {
   final GestureLongPressStartCallback? onLongPressStart;
 
   @override
-  State<GridAppIcon> createState() => _GridAppIconState();
+  ConsumerState<GridAppIcon> createState() => _GridAppIconState();
 }
 
-class _GridAppIconState extends State<GridAppIcon> {
+class _GridAppIconState extends ConsumerState<GridAppIcon> {
   bool _pressed = false;
   final _service = AppService();
   final _cache = IconCache();
@@ -122,6 +125,77 @@ class _GridAppIconState extends State<GridAppIcon> {
 
   @override
   Widget build(BuildContext context) {
+    final iconTheme = ref.watch(iconThemeProvider);
+
+    Widget buildIconContent() {
+      switch (iconTheme) {
+        case AppIconTheme.fun:
+          final iconData =
+              funIconMap[widget.app.packageName] ?? funFallbackIcon;
+          final bgColor = getColorFromPackageName(widget.app.packageName);
+          return Container(
+            width: widget.iconSize,
+            height: widget.iconSize,
+            decoration: BoxDecoration(
+              borderRadius: _borderRadiusForIcon(),
+              color: bgColor,
+            ),
+            child: Icon(
+              iconData,
+              size: widget.iconSize * 0.5,
+              color: Colors.white,
+            ),
+          );
+
+        case AppIconTheme.cute:
+          final iconData =
+              cuteIconMap[widget.app.packageName] ?? cuteFallbackIcon;
+          final bgColor = getPastelColorFromPackageName(widget.app.packageName);
+          return Container(
+            width: widget.iconSize,
+            height: widget.iconSize,
+            decoration: BoxDecoration(
+              borderRadius: _borderRadiusForIcon(),
+              color: bgColor,
+            ),
+            child: Icon(
+              iconData,
+              size: widget.iconSize * 0.5,
+              color: Colors.black.withValues(alpha: 0.7),
+            ),
+          );
+
+        case AppIconTheme.dark:
+        case AppIconTheme.defaultTheme:
+          final iconColorFilter = IconThemeService.getColorFilterForTheme(
+            iconTheme,
+          );
+          return ClipRRect(
+            borderRadius: _borderRadiusForIcon(),
+            child: Container(
+              width: widget.iconSize,
+              height: widget.iconSize,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerHigh,
+                shape: _shapeForIcon(),
+              ),
+              child: _effectiveIcon != null && _effectiveIcon!.isNotEmpty
+                  ? ColorFiltered(
+                      colorFilter: iconColorFilter,
+                      child: Image.memory(
+                        _effectiveIcon!,
+                        width: widget.iconSize,
+                        height: widget.iconSize,
+                        fit: BoxFit.cover,
+                        gaplessPlayback: true,
+                      ),
+                    )
+                  : Icon(Icons.apps, size: widget.iconSize),
+            ),
+          );
+      }
+    }
+
     return Transform.rotate(
       angle: widget.isEditing ? widget.wiggleRadians : 0,
       child: GestureDetector(
@@ -146,31 +220,7 @@ class _GridAppIconState extends State<GridAppIcon> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Hero(
-                        tag: widget.heroTag,
-                        child: ClipRRect(
-                          borderRadius: _borderRadiusForIcon(),
-                          child: Container(
-                            width: widget.iconSize,
-                            height: widget.iconSize,
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceContainerHigh,
-                              shape: _shapeForIcon(),
-                            ),
-                            child:
-                                _effectiveIcon != null &&
-                                    _effectiveIcon!.isNotEmpty
-                                ? Image.memory(
-                                    _effectiveIcon!,
-                                    width: widget.iconSize,
-                                    height: widget.iconSize,
-                                    fit: BoxFit.cover,
-                                    gaplessPlayback: true,
-                                  )
-                                : Icon(Icons.apps, size: widget.iconSize),
-                          ),
-                        ),
-                      ),
+                      Hero(tag: widget.heroTag, child: buildIconContent()),
                       if (widget.showLabel) ...[
                         const SizedBox(height: 8),
                         Text(
@@ -246,7 +296,7 @@ class DockSlot extends StatefulWidget {
   State<DockSlot> createState() => _DockSlotState();
 }
 
-class FolderIcon extends StatelessWidget {
+class FolderIcon extends ConsumerWidget {
   const FolderIcon({
     super.key,
     required this.name,
@@ -259,7 +309,9 @@ class FolderIcon extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final iconTheme = ref.watch(iconThemeProvider);
+
     return GestureDetector(
       onTap: onTap,
       child: GlassCardLight(
@@ -271,17 +323,66 @@ class FolderIcon extends StatelessWidget {
               spacing: 4,
               runSpacing: 4,
               children: apps.take(4).map((app) {
-                return Container(
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(6),
-                    color: AppColors.surfaceContainerHighest,
-                  ),
-                  child: app.icon.isNotEmpty
-                      ? Image.memory(app.icon, fit: BoxFit.cover)
-                      : const Icon(Icons.apps, size: 14),
-                );
+                Widget iconContent;
+
+                switch (iconTheme) {
+                  case AppIconTheme.fun:
+                    final iconData =
+                        funIconMap[app.packageName] ?? funFallbackIcon;
+                    final bgColor = getColorFromPackageName(app.packageName);
+                    iconContent = Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        color: bgColor,
+                      ),
+                      child: Icon(iconData, size: 11, color: Colors.white),
+                    );
+                    break;
+
+                  case AppIconTheme.cute:
+                    final iconData =
+                        cuteIconMap[app.packageName] ?? cuteFallbackIcon;
+                    final bgColor = getPastelColorFromPackageName(
+                      app.packageName,
+                    );
+                    iconContent = Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        color: bgColor,
+                      ),
+                      child: Icon(
+                        iconData,
+                        size: 11,
+                        color: Colors.black.withValues(alpha: 0.7),
+                      ),
+                    );
+                    break;
+
+                  case AppIconTheme.dark:
+                  case AppIconTheme.defaultTheme:
+                    final iconColorFilter =
+                        IconThemeService.getColorFilterForTheme(iconTheme);
+                    iconContent = Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        color: AppColors.surfaceContainerHighest,
+                      ),
+                      child: app.icon.isNotEmpty
+                          ? ColorFiltered(
+                              colorFilter: iconColorFilter,
+                              child: Image.memory(app.icon, fit: BoxFit.cover),
+                            )
+                          : const Icon(Icons.apps, size: 14),
+                    );
+                }
+
+                return iconContent;
               }).toList(),
             ),
             const SizedBox(height: 8),
@@ -321,7 +422,10 @@ class _DockSlotState extends State<DockSlot> {
               children: [
                 Center(
                   child: widget.app!.icon.isNotEmpty
-                      ? Image.memory(widget.app!.icon, width: 32, height: 32)
+                      ? _DockIconWithTheme(
+                          icon: widget.app!.icon,
+                          packageName: widget.app!.packageName,
+                        )
                       : const Icon(Icons.apps, size: 24),
                 ),
                 if (widget.showNotification)
@@ -373,5 +477,59 @@ class _DockSlotState extends State<DockSlot> {
         );
       },
     );
+  }
+}
+
+class _DockIconWithTheme extends ConsumerWidget {
+  const _DockIconWithTheme({required this.icon, required this.packageName});
+
+  final Uint8List icon;
+  final String packageName;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final iconTheme = ref.watch(iconThemeProvider);
+
+    switch (iconTheme) {
+      case AppIconTheme.fun:
+        final iconData = funIconMap[packageName] ?? funFallbackIcon;
+        final bgColor = getColorFromPackageName(packageName);
+        return Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: bgColor,
+          ),
+          child: Icon(iconData, size: 16, color: Colors.white),
+        );
+
+      case AppIconTheme.cute:
+        final iconData = cuteIconMap[packageName] ?? cuteFallbackIcon;
+        final bgColor = getPastelColorFromPackageName(packageName);
+        return Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: bgColor,
+          ),
+          child: Icon(
+            iconData,
+            size: 16,
+            color: Colors.black.withValues(alpha: 0.7),
+          ),
+        );
+
+      case AppIconTheme.dark:
+      case AppIconTheme.defaultTheme:
+        final iconColorFilter = IconThemeService.getColorFilterForTheme(
+          iconTheme,
+        );
+        return ColorFiltered(
+          colorFilter: iconColorFilter,
+          child: Image.memory(icon, width: 32, height: 32),
+        );
+    }
   }
 }

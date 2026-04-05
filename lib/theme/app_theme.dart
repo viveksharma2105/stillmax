@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 
 const int kMaxStarredApps = 5;
 
+enum AppIconTheme {
+  defaultTheme, // no filter — original icon colors
+  dark, // desaturated + darkened — icons look dark/muted
+  fun, // saturated + slightly warm tinted — vivid and bright
+  cute, // soft pastel tint — light pink/purple overlay
+}
+
 /// Nocturnal OS Design System
 /// Extracted from DESIGN.md and prototype.html
 /// Dark-only theme with glassmorphism aesthetics

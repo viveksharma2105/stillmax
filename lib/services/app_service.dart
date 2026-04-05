@@ -187,6 +187,18 @@ class AppService {
     return LatLng(latitude: lat, longitude: lon);
   }
 
+  Future<String?> getLocationName(double lat, double lon) async {
+    try {
+      final String? result = await _channel.invokeMethod('getLocationName', {
+        'latitude': lat,
+        'longitude': lon,
+      });
+      return result;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<List<AvailableWidgetInfo>> getAvailableWidgets() async {
     final List<dynamic>? result = await _channel.invokeMethod(
       'getAvailableWidgets',

@@ -1964,73 +1964,93 @@ const SettingsDbSchema = CollectionSchema(
   name: r'SettingsDb',
   id: 8417282985539613480,
   properties: {
-    r'clockStyle': PropertySchema(
+    r'clockSpacing': PropertySchema(
       id: 0,
+      name: r'clockSpacing',
+      type: IsarType.double,
+    ),
+    r'clockStyle': PropertySchema(
+      id: 1,
       name: r'clockStyle',
       type: IsarType.string,
     ),
     r'dockIconCount': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'dockIconCount',
       type: IsarType.long,
     ),
     r'doubleTapAction': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'doubleTapAction',
       type: IsarType.long,
     ),
     r'fontScaleFactor': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'fontScaleFactor',
       type: IsarType.double,
     ),
     r'fontSize': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'fontSize',
       type: IsarType.long,
     ),
     r'gridColumns': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'gridColumns',
       type: IsarType.long,
     ),
     r'hapticsEnabled': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'hapticsEnabled',
       type: IsarType.bool,
     ),
     r'iconShape': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'iconShape',
       type: IsarType.long,
     ),
     r'iconSize': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'iconSize',
       type: IsarType.long,
     ),
+    r'iconTheme': PropertySchema(
+      id: 10,
+      name: r'iconTheme',
+      type: IsarType.long,
+    ),
+    r'leftWidgetSlotId': PropertySchema(
+      id: 11,
+      name: r'leftWidgetSlotId',
+      type: IsarType.long,
+    ),
     r'pinchAction': PropertySchema(
-      id: 9,
+      id: 12,
       name: r'pinchAction',
       type: IsarType.long,
     ),
+    r'rightWidgetSlotId': PropertySchema(
+      id: 13,
+      name: r'rightWidgetSlotId',
+      type: IsarType.long,
+    ),
     r'showDockLabels': PropertySchema(
-      id: 10,
+      id: 14,
       name: r'showDockLabels',
       type: IsarType.bool,
     ),
     r'showLabels': PropertySchema(
-      id: 11,
+      id: 15,
       name: r'showLabels',
       type: IsarType.bool,
     ),
     r'showRecents': PropertySchema(
-      id: 12,
+      id: 16,
       name: r'showRecents',
       type: IsarType.bool,
     ),
     r'swipeLeftAction': PropertySchema(
-      id: 13,
+      id: 17,
       name: r'swipeLeftAction',
       type: IsarType.long,
     )
@@ -2065,20 +2085,24 @@ void _settingsDbSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.clockStyle);
-  writer.writeLong(offsets[1], object.dockIconCount);
-  writer.writeLong(offsets[2], object.doubleTapAction);
-  writer.writeDouble(offsets[3], object.fontScaleFactor);
-  writer.writeLong(offsets[4], object.fontSize);
-  writer.writeLong(offsets[5], object.gridColumns);
-  writer.writeBool(offsets[6], object.hapticsEnabled);
-  writer.writeLong(offsets[7], object.iconShape);
-  writer.writeLong(offsets[8], object.iconSize);
-  writer.writeLong(offsets[9], object.pinchAction);
-  writer.writeBool(offsets[10], object.showDockLabels);
-  writer.writeBool(offsets[11], object.showLabels);
-  writer.writeBool(offsets[12], object.showRecents);
-  writer.writeLong(offsets[13], object.swipeLeftAction);
+  writer.writeDouble(offsets[0], object.clockSpacing);
+  writer.writeString(offsets[1], object.clockStyle);
+  writer.writeLong(offsets[2], object.dockIconCount);
+  writer.writeLong(offsets[3], object.doubleTapAction);
+  writer.writeDouble(offsets[4], object.fontScaleFactor);
+  writer.writeLong(offsets[5], object.fontSize);
+  writer.writeLong(offsets[6], object.gridColumns);
+  writer.writeBool(offsets[7], object.hapticsEnabled);
+  writer.writeLong(offsets[8], object.iconShape);
+  writer.writeLong(offsets[9], object.iconSize);
+  writer.writeLong(offsets[10], object.iconTheme);
+  writer.writeLong(offsets[11], object.leftWidgetSlotId);
+  writer.writeLong(offsets[12], object.pinchAction);
+  writer.writeLong(offsets[13], object.rightWidgetSlotId);
+  writer.writeBool(offsets[14], object.showDockLabels);
+  writer.writeBool(offsets[15], object.showLabels);
+  writer.writeBool(offsets[16], object.showRecents);
+  writer.writeLong(offsets[17], object.swipeLeftAction);
 }
 
 SettingsDb _settingsDbDeserialize(
@@ -2088,21 +2112,25 @@ SettingsDb _settingsDbDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = SettingsDb();
-  object.clockStyle = reader.readString(offsets[0]);
-  object.dockIconCount = reader.readLong(offsets[1]);
-  object.doubleTapAction = reader.readLong(offsets[2]);
-  object.fontScaleFactor = reader.readDouble(offsets[3]);
-  object.fontSize = reader.readLong(offsets[4]);
-  object.gridColumns = reader.readLong(offsets[5]);
-  object.hapticsEnabled = reader.readBool(offsets[6]);
-  object.iconShape = reader.readLong(offsets[7]);
-  object.iconSize = reader.readLong(offsets[8]);
+  object.clockSpacing = reader.readDouble(offsets[0]);
+  object.clockStyle = reader.readString(offsets[1]);
+  object.dockIconCount = reader.readLong(offsets[2]);
+  object.doubleTapAction = reader.readLong(offsets[3]);
+  object.fontScaleFactor = reader.readDouble(offsets[4]);
+  object.fontSize = reader.readLong(offsets[5]);
+  object.gridColumns = reader.readLong(offsets[6]);
+  object.hapticsEnabled = reader.readBool(offsets[7]);
+  object.iconShape = reader.readLong(offsets[8]);
+  object.iconSize = reader.readLong(offsets[9]);
+  object.iconTheme = reader.readLong(offsets[10]);
   object.id = id;
-  object.pinchAction = reader.readLong(offsets[9]);
-  object.showDockLabels = reader.readBool(offsets[10]);
-  object.showLabels = reader.readBool(offsets[11]);
-  object.showRecents = reader.readBool(offsets[12]);
-  object.swipeLeftAction = reader.readLong(offsets[13]);
+  object.leftWidgetSlotId = reader.readLongOrNull(offsets[11]);
+  object.pinchAction = reader.readLong(offsets[12]);
+  object.rightWidgetSlotId = reader.readLongOrNull(offsets[13]);
+  object.showDockLabels = reader.readBool(offsets[14]);
+  object.showLabels = reader.readBool(offsets[15]);
+  object.showRecents = reader.readBool(offsets[16]);
+  object.swipeLeftAction = reader.readLong(offsets[17]);
   return object;
 }
 
@@ -2114,32 +2142,40 @@ P _settingsDbDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readString(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 1:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 2:
       return (reader.readLong(offset)) as P;
     case 3:
-      return (reader.readDouble(offset)) as P;
-    case 4:
       return (reader.readLong(offset)) as P;
+    case 4:
+      return (reader.readDouble(offset)) as P;
     case 5:
       return (reader.readLong(offset)) as P;
     case 6:
-      return (reader.readBool(offset)) as P;
-    case 7:
       return (reader.readLong(offset)) as P;
+    case 7:
+      return (reader.readBool(offset)) as P;
     case 8:
       return (reader.readLong(offset)) as P;
     case 9:
       return (reader.readLong(offset)) as P;
     case 10:
-      return (reader.readBool(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 11:
-      return (reader.readBool(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 12:
-      return (reader.readBool(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 13:
+      return (reader.readLongOrNull(offset)) as P;
+    case 14:
+      return (reader.readBool(offset)) as P;
+    case 15:
+      return (reader.readBool(offset)) as P;
+    case 16:
+      return (reader.readBool(offset)) as P;
+    case 17:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -2237,6 +2273,72 @@ extension SettingsDbQueryWhere
 
 extension SettingsDbQueryFilter
     on QueryBuilder<SettingsDb, SettingsDb, QFilterCondition> {
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      clockSpacingEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'clockSpacing',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      clockSpacingGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'clockSpacing',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      clockSpacingLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'clockSpacing',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      clockSpacingBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'clockSpacing',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
   QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition> clockStyleEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -2778,6 +2880,60 @@ extension SettingsDbQueryFilter
     });
   }
 
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition> iconThemeEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'iconTheme',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      iconThemeGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'iconTheme',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition> iconThemeLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'iconTheme',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition> iconThemeBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'iconTheme',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition> idEqualTo(
       Id value) {
     return QueryBuilder.apply(this, (query) {
@@ -2823,6 +2979,80 @@ extension SettingsDbQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'id',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      leftWidgetSlotIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'leftWidgetSlotId',
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      leftWidgetSlotIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'leftWidgetSlotId',
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      leftWidgetSlotIdEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'leftWidgetSlotId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      leftWidgetSlotIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'leftWidgetSlotId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      leftWidgetSlotIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'leftWidgetSlotId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      leftWidgetSlotIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'leftWidgetSlotId',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -2879,6 +3109,80 @@ extension SettingsDbQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'pinchAction',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      rightWidgetSlotIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'rightWidgetSlotId',
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      rightWidgetSlotIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'rightWidgetSlotId',
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      rightWidgetSlotIdEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'rightWidgetSlotId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      rightWidgetSlotIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'rightWidgetSlotId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      rightWidgetSlotIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'rightWidgetSlotId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      rightWidgetSlotIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'rightWidgetSlotId',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -2982,6 +3286,18 @@ extension SettingsDbQueryLinks
 
 extension SettingsDbQuerySortBy
     on QueryBuilder<SettingsDb, SettingsDb, QSortBy> {
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> sortByClockSpacing() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'clockSpacing', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> sortByClockSpacingDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'clockSpacing', Sort.desc);
+    });
+  }
+
   QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> sortByClockStyle() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'clockStyle', Sort.asc);
@@ -3093,6 +3409,31 @@ extension SettingsDbQuerySortBy
     });
   }
 
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> sortByIconTheme() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'iconTheme', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> sortByIconThemeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'iconTheme', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> sortByLeftWidgetSlotId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'leftWidgetSlotId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy>
+      sortByLeftWidgetSlotIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'leftWidgetSlotId', Sort.desc);
+    });
+  }
+
   QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> sortByPinchAction() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'pinchAction', Sort.asc);
@@ -3102,6 +3443,19 @@ extension SettingsDbQuerySortBy
   QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> sortByPinchActionDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'pinchAction', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> sortByRightWidgetSlotId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rightWidgetSlotId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy>
+      sortByRightWidgetSlotIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rightWidgetSlotId', Sort.desc);
     });
   }
 
@@ -3158,6 +3512,18 @@ extension SettingsDbQuerySortBy
 
 extension SettingsDbQuerySortThenBy
     on QueryBuilder<SettingsDb, SettingsDb, QSortThenBy> {
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> thenByClockSpacing() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'clockSpacing', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> thenByClockSpacingDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'clockSpacing', Sort.desc);
+    });
+  }
+
   QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> thenByClockStyle() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'clockStyle', Sort.asc);
@@ -3269,6 +3635,18 @@ extension SettingsDbQuerySortThenBy
     });
   }
 
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> thenByIconTheme() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'iconTheme', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> thenByIconThemeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'iconTheme', Sort.desc);
+    });
+  }
+
   QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -3281,6 +3659,19 @@ extension SettingsDbQuerySortThenBy
     });
   }
 
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> thenByLeftWidgetSlotId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'leftWidgetSlotId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy>
+      thenByLeftWidgetSlotIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'leftWidgetSlotId', Sort.desc);
+    });
+  }
+
   QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> thenByPinchAction() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'pinchAction', Sort.asc);
@@ -3290,6 +3681,19 @@ extension SettingsDbQuerySortThenBy
   QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> thenByPinchActionDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'pinchAction', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> thenByRightWidgetSlotId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rightWidgetSlotId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy>
+      thenByRightWidgetSlotIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'rightWidgetSlotId', Sort.desc);
     });
   }
 
@@ -3346,6 +3750,12 @@ extension SettingsDbQuerySortThenBy
 
 extension SettingsDbQueryWhereDistinct
     on QueryBuilder<SettingsDb, SettingsDb, QDistinct> {
+  QueryBuilder<SettingsDb, SettingsDb, QDistinct> distinctByClockSpacing() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'clockSpacing');
+    });
+  }
+
   QueryBuilder<SettingsDb, SettingsDb, QDistinct> distinctByClockStyle(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -3401,9 +3811,28 @@ extension SettingsDbQueryWhereDistinct
     });
   }
 
+  QueryBuilder<SettingsDb, SettingsDb, QDistinct> distinctByIconTheme() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'iconTheme');
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QDistinct> distinctByLeftWidgetSlotId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'leftWidgetSlotId');
+    });
+  }
+
   QueryBuilder<SettingsDb, SettingsDb, QDistinct> distinctByPinchAction() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'pinchAction');
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QDistinct>
+      distinctByRightWidgetSlotId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'rightWidgetSlotId');
     });
   }
 
@@ -3437,6 +3866,12 @@ extension SettingsDbQueryProperty
   QueryBuilder<SettingsDb, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<SettingsDb, double, QQueryOperations> clockSpacingProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'clockSpacing');
     });
   }
 
@@ -3494,9 +3929,27 @@ extension SettingsDbQueryProperty
     });
   }
 
+  QueryBuilder<SettingsDb, int, QQueryOperations> iconThemeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'iconTheme');
+    });
+  }
+
+  QueryBuilder<SettingsDb, int?, QQueryOperations> leftWidgetSlotIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'leftWidgetSlotId');
+    });
+  }
+
   QueryBuilder<SettingsDb, int, QQueryOperations> pinchActionProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'pinchAction');
+    });
+  }
+
+  QueryBuilder<SettingsDb, int?, QQueryOperations> rightWidgetSlotIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'rightWidgetSlotId');
     });
   }
 
