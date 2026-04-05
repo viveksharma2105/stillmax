@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/app_service.dart';
@@ -9,9 +9,8 @@ import '../state/app_list_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/alphabet_sidebar.dart';
 import '../widgets/app_list_tile.dart';
-import '../widgets/home_widget_view.dart';
 import '../widgets/time_header.dart';
-import '../widgets/widget_picker_sheet.dart';
+import 'stillmax_settings_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -21,21 +20,26 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  static const double _appTileExtent = 72;
-  static const double _letterHeaderExtent = 24;
-
   final ScrollController _appsScrollController = ScrollController();
   final Map<String, GlobalKey> _sectionKeys = <String, GlobalKey>{};
-  final GlobalKey _topSectionsKey = GlobalKey();
 
   Timer? _scrollIdleTimer;
   bool _isAppsScrolling = false;
-  double _topSectionsHeight = 0;
 
   @override
   void initState() {
     super.initState();
     _appsScrollController.addListener(_onAppsScroll);
+    // Set system UI for edge-to-edge
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+    );
   }
 
   @override
@@ -61,40 +65,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
-  void _measureTopSections() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      final contextForTop = _topSectionsKey.currentContext;
-      if (contextForTop == null) {
-        return;
-      }
-      final render = contextForTop.findRenderObject();
-      if (render is! RenderBox) {
-        return;
-      }
-      final next = render.size.height;
-      if ((next - _topSectionsHeight).abs() < 1) {
-        return;
-      }
-      setState(() => _topSectionsHeight = next);
-    });
-  }
+  void _jumpToLetter(String letter) {
+    if (letter == '★') {
+      // Scroll to top for star
+      _appsScrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+      return;
+    }
 
-  Future<void> _openWidgetPicker() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.background.withValues(alpha: 0),
-      isScrollControlled: true,
-      builder: (_) => const FractionallySizedBox(
-        heightFactor: 0.86,
-        child: WidgetPickerSheet(),
-      ),
-    );
-  }
-
-  Future<void> _jumpToLetter(String letter) async {
     final key = _sectionKeys[letter];
     if (key == null || !mounted) {
       return;
@@ -105,70 +86,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return;
     }
 
-    await Scrollable.ensureVisible(
+    Scrollable.ensureVisible(
       contextForLetter,
       duration: const Duration(milliseconds: 120),
       curve: Curves.easeOut,
       alignment: 0.06,
     );
-  }
-
-  Future<void> _removeHomeWidget(HomeWidgetEntry entry) async {
-    final shouldDelete = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: AppColors.background.withValues(alpha: 0),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-          decoration: BoxDecoration(
-            color: AppColors.glassDark,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            border: Border.all(
-              color: AppColors.outlineVariant.withValues(alpha: 0.35),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Remove Widget', style: AppTypography.titleLarge),
-              const SizedBox(height: 10),
-              Text(
-                entry.label,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Remove'),
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancel'),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (shouldDelete != true) {
-      return;
-    }
-
-    final service = ref.read(appServiceProvider);
-    final widgetsNotifier = ref.read(homeWidgetsProvider.notifier);
-    await service.deleteWidgetId(entry.appWidgetId);
-    await widgetsNotifier.removeWidget(entry.appWidgetId);
   }
 
   @override
@@ -178,17 +101,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final starredPackages = ref.watch(starredAppsProvider);
     final settings = ref.watch(settingsProvider).valueOrNull;
     final scale = settings?.fontScaleFactor ?? 1.0;
-    final homeWidgets = ref.watch(homeWidgetsProvider);
 
     final letters = grouped.keys.toList(growable: false);
-    final sidebarLetters = List<String>.generate(
-      26,
-      (index) => String.fromCharCode(65 + index),
-      growable: false,
-    );
-    final availableSidebarLetters = letters
-        .where((letter) => RegExp(r'^[A-Z]$').hasMatch(letter))
-        .toSet();
+    final sidebarLetters = [
+      '★',
+      ...List<String>.generate(
+        26,
+        (index) => String.fromCharCode(65 + index),
+        growable: false,
+      ),
+    ];
+    final availableSidebarLetters = {
+      '★', // Star is always active
+      ...letters.where((letter) => RegExp(r'^[A-Z]$').hasMatch(letter)),
+    };
 
     final starredApps = apps
         .where((app) => starredPackages.contains(app.packageName))
@@ -202,441 +128,214 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             .map((letter) => MapEntry<String, GlobalKey>(letter, GlobalKey())),
       );
 
-    _measureTopSections();
-
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFF090909),
       body: SafeArea(
-        bottom: false,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final availableHeight = constraints.maxHeight - _topSectionsHeight;
-            final minListViewport = (_appTileExtent * 5) + _letterHeaderExtent;
-            final listViewportHeight = math.max(
-              0.0,
-              math.min(minListViewport, availableHeight),
-            );
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. Clock + weather (fixed, never scrolls)
+            const Padding(
+              padding: EdgeInsets.only(top: 16),
+              child: TimeHeader(),
+            ),
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  key: _topSectionsKey,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 28),
-                      const TimeHeader(),
-                      const SizedBox(height: 32),
-                      const SizedBox(height: 24),
-                      _AddWidgetCard(onTap: _openWidgetPicker, scale: scale),
-                      const SizedBox(height: 20),
-                      if (homeWidgets.isNotEmpty) ...[
-                        _SectionHeader(
-                          icon: Icons.widgets_outlined,
-                          label: 'Widgets',
-                          scale: scale,
-                        ),
-                        const SizedBox(height: 10),
-                        for (final entry in homeWidgets) ...[
-                          GestureDetector(
-                            onLongPress: () =>
-                                unawaited(_removeHomeWidget(entry)),
-                            child: Container(
-                              height: _widgetHeight(entry),
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                color: AppColors.surfaceContainerHigh
-                                    .withValues(alpha: 0.42),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: AppColors.outlineVariant.withValues(
-                                    alpha: 0.35,
-                                  ),
-                                ),
-                              ),
-                              clipBehavior: Clip.antiAlias,
-                              child: HomeWidgetView(
-                                widgetId: entry.appWidgetId,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                      ],
-                      const SizedBox(height: 16),
-                      _SectionHeader(
-                        icon: Icons.star,
-                        label: 'Favourites',
-                        scale: scale,
-                      ),
-                      const SizedBox(height: 10),
-                      _StarredRow(apps: starredApps, scale: scale),
-                      const SizedBox(height: 18),
-                      _SectionHeader(
-                        icon: Icons.sort_by_alpha,
-                        label: 'All Apps',
-                        scale: scale,
-                      ),
-                      const SizedBox(height: 6),
-                    ],
+            const SizedBox(height: 16),
+
+            // 2. Favourites header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Icon(Icons.star, color: AppColors.secondary, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    'FAVOURITES',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.60),
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // 3. Favourites list — exactly as many tiles as starred apps (max 5)
+            // NO fixed height container — let it size to its content naturally
+            if (starredApps.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'No favourites yet. Manage favourites in Stillmax Settings.',
+                    style: TextStyle(
+                      fontSize: 12 * scale,
+                      color: Colors.white.withValues(alpha: 0.45),
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                 ),
-                SizedBox(
-                  height: listViewportHeight,
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: ShaderMask(
-                          shaderCallback: (rect) {
-                            final edgeStop = rect.height <= 0
-                                ? 0.08
-                                : (14 / rect.height)
-                                      .clamp(0.03, 0.2)
-                                      .toDouble();
-                            return LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                AppColors.onSurface.withValues(alpha: 0),
-                                AppColors.onSurface,
-                                AppColors.onSurface,
-                                AppColors.onSurface.withValues(alpha: 0),
-                              ],
-                              stops: [0, edgeStop, 1 - edgeStop, 1],
-                            ).createShader(rect);
-                          },
-                          blendMode: BlendMode.dstIn,
-                          child: CustomScrollView(
-                            controller: _appsScrollController,
-                            physics: const BouncingScrollPhysics(),
-                            slivers: [
-                              for (final letter in letters) ...[
-                                SliverPersistentHeader(
-                                  pinned: true,
-                                  delegate: _LetterHeaderDelegate(
-                                    letter: letter,
-                                    keyWidget: Container(
-                                      key: _sectionKeys[letter],
-                                    ),
-                                    scale: scale,
-                                  ),
-                                ),
-                                SliverPadding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    16,
-                                    0,
-                                    16,
-                                    0,
-                                  ),
-                                  sliver: SliverList.builder(
-                                    itemCount: grouped[letter]?.length ?? 0,
-                                    itemBuilder: (context, index) {
-                                      final letterApps =
-                                          grouped[letter] ?? const <AppInfo>[];
-                                      final app = letterApps[index];
-                                      final isStarred = starredPackages
-                                          .contains(app.packageName);
-                                      return AppListTile(
-                                        app: app,
-                                        starred: isStarred,
-                                        showDivider:
-                                            index != letterApps.length - 1,
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
-                              const SliverToBoxAdapter(
-                                child: SizedBox(height: 80),
-                              ),
-                            ],
-                          ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: starredApps
+                      .map(
+                        (app) => AppListTile(
+                          app: app,
+                          starred: true,
+                          showDivider: false,
                         ),
-                      ),
-                      if (letters.isNotEmpty)
-                        AlphabetSidebar(
-                          letters: sidebarLetters,
-                          availableLetters: availableSidebarLetters,
-                          onLetterChanged: _jumpToLetter,
-                          fontScaleFactor: scale,
-                          isScrolling: _isAppsScrolling,
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  double _widgetHeight(HomeWidgetEntry entry) {
-    final base = entry.minHeight.toDouble();
-    if (base <= 0) {
-      return 160;
-    }
-    return base.clamp(120, 280).toDouble();
-  }
-}
-
-class _StarredRow extends ConsumerWidget {
-  const _StarredRow({required this.apps, required this.scale});
-
-  final List<AppInfo> apps;
-  final double scale;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (apps.isEmpty) {
-      return Container(
-        height: 52,
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: AppColors.onSurface.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Text(
-          'Long press any app to add it to favourites',
-          style: AppTypography.bodySmall.copyWith(
-            color: AppColors.onSurfaceVariant,
-            fontSize: 12 * scale,
-            fontStyle: FontStyle.italic,
-          ),
-        ),
-      );
-    }
-
-    return SizedBox(
-      height: 92,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: apps.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 10),
-        itemBuilder: (context, index) {
-          final app = apps[index];
-          return _StarredAppChip(app: app, scale: scale);
-        },
-      ),
-    );
-  }
-}
-
-class _StarredAppChip extends ConsumerWidget {
-  const _StarredAppChip({required this.app, required this.scale});
-
-  final AppInfo app;
-  final double scale;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    Future<void> launch() async {
-      await ref.read(appServiceProvider).launchApp(app.packageName);
-    }
-
-    Future<void> openMenu(LongPressStartDetails details) async {
-      final renderObject = Overlay.of(context).context.findRenderObject();
-      if (renderObject is! RenderBox) {
-        return;
-      }
-
-      final selected = await showMenu<String>(
-        context: context,
-        position: RelativeRect.fromRect(
-          Rect.fromLTWH(
-            details.globalPosition.dx,
-            details.globalPosition.dy,
-            1,
-            1,
-          ),
-          Offset.zero & renderObject.size,
-        ),
-        color: AppColors.surfaceContainerHigh,
-        items: const [
-          PopupMenuItem<String>(value: 'open', child: Text('Open')),
-          PopupMenuItem<String>(
-            value: 'unstar',
-            child: Text('Remove from favourites'),
-          ),
-          PopupMenuItem<String>(value: 'app_info', child: Text('App info')),
-          PopupMenuItem<String>(value: 'uninstall', child: Text('Uninstall')),
-        ],
-      );
-
-      switch (selected) {
-        case 'open':
-          await launch();
-          break;
-        case 'unstar':
-          await ref
-              .read(starredAppsProvider.notifier)
-              .toggleStarred(app.packageName);
-          break;
-        case 'app_info':
-          await ref.read(appServiceProvider).openAppInfo(app.packageName);
-          break;
-        case 'uninstall':
-          await ref.read(appServiceProvider).uninstallApp(app.packageName);
-          break;
-        default:
-          break;
-      }
-    }
-
-    return GestureDetector(
-      onLongPressStart: (details) => unawaited(openMenu(details)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => unawaited(launch()),
-        child: SizedBox(
-          width: 76,
-          child: Column(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: app.icon.isNotEmpty
-                    ? Image.memory(
-                        app.icon,
-                        fit: BoxFit.cover,
-                        gaplessPlayback: true,
                       )
-                    : const Icon(Icons.apps),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                app.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: AppTypography.labelSmall.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                  letterSpacing: 0.2,
-                  fontSize: 11 * scale,
+                      .toList(),
                 ),
               ),
-            ],
-          ),
+
+            const SizedBox(height: 12),
+
+            // 4. All Apps header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Text(
+                    'AZ',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.secondary,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'ALL APPS',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.60),
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 4),
+
+            // 5. All apps list — fills ALL remaining space, scrollable
+            Expanded(
+              child: Stack(
+                children: [
+                  ListView.builder(
+                    controller: _appsScrollController,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 80),
+                    itemCount: _calculateTotalItems(grouped, letters),
+                    itemBuilder: (context, index) {
+                      return _buildListItem(
+                        index,
+                        grouped,
+                        letters,
+                        starredPackages,
+                        scale,
+                      );
+                    },
+                  ),
+                  if (letters.isNotEmpty)
+                    AlphabetSidebar(
+                      letters: sidebarLetters,
+                      availableLetters: availableSidebarLetters,
+                      onLetterChanged: _jumpToLetter,
+                      fontScaleFactor: scale,
+                      isScrolling: _isAppsScrolling,
+                    ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
-}
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.icon,
-    required this.label,
-    required this.scale,
-  });
-
-  final IconData icon;
-  final String label;
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: AppColors.secondary),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: AppTypography.labelLarge.copyWith(
-            color: AppColors.onSurface,
-            letterSpacing: 0.8,
-            fontSize: 14 * scale,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _AddWidgetCard extends StatelessWidget {
-  const _AddWidgetCard({required this.onTap, required this.scale});
-
-  final VoidCallback onTap;
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: CustomPaint(
-        painter: _DashedRoundedRectPainter(),
-        child: Container(
-          height: 56,
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: AppColors.onSurface.withValues(alpha: 0.02),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.add, color: AppColors.secondary, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                'ADD WIDGET',
-                style: AppTypography.labelMedium.copyWith(
-                  color: AppColors.secondary,
-                  letterSpacing: 0.8,
-                  fontSize: 13 * scale,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DashedRoundedRectPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    const radius = 12.0;
-    final rect = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      const Radius.circular(radius),
-    );
-    final path = Path()..addRRect(rect);
-
-    final paint = Paint()
-      ..color = AppColors.secondary.withValues(alpha: 0.4)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-
-    const dash = 7.0;
-    const gap = 5.0;
-
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        final next = (distance + dash).clamp(0.0, metric.length).toDouble();
-        canvas.drawPath(metric.extractPath(distance, next), paint);
-        distance += dash + gap;
-      }
+  int _calculateTotalItems(
+    Map<String, List<AppInfo>> grouped,
+    List<String> letters,
+  ) {
+    var count = 0;
+    for (final letter in letters) {
+      count++; // Header
+      count += grouped[letter]?.length ?? 0; // Apps in this letter group
     }
+    count++; // Stillmax Settings tile at the end
+    return count;
   }
 
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  Widget _buildListItem(
+    int index,
+    Map<String, List<AppInfo>> grouped,
+    List<String> letters,
+    List<String> starredPackages,
+    double scale,
+  ) {
+    var currentIndex = 0;
+
+    // Iterate through each letter group
+    for (var i = 0; i < letters.length; i++) {
+      final letter = letters[i];
+      final letterApps = grouped[letter] ?? const <AppInfo>[];
+
+      // Check if this index is the header
+      if (currentIndex == index) {
+        return _LetterHeader(
+          letter: letter,
+          keyWidget: Container(key: _sectionKeys[letter]),
+          scale: scale,
+        );
+      }
+      currentIndex++;
+
+      // Check if this index is one of the apps in this letter group
+      if (index < currentIndex + letterApps.length) {
+        final appIndex = index - currentIndex;
+        final app = letterApps[appIndex];
+        final isStarred = starredPackages.contains(app.packageName);
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: AppListTile(app: app, starred: isStarred, showDivider: false),
+        );
+      }
+      currentIndex += letterApps.length;
+    }
+
+    // Last item: Stillmax Settings tile
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Column(
+        children: [
+          Divider(color: Colors.white.withValues(alpha: 0.12), thickness: 0.5),
+          const SizedBox(height: 16),
+          _SettingsTile(scale: scale),
+        ],
+      ),
+    );
+  }
 }
 
-class _LetterHeaderDelegate extends SliverPersistentHeaderDelegate {
-  _LetterHeaderDelegate({
+class _LetterHeader extends StatelessWidget {
+  const _LetterHeader({
     required this.letter,
     required this.keyWidget,
     required this.scale,
@@ -647,41 +346,100 @@ class _LetterHeaderDelegate extends SliverPersistentHeaderDelegate {
   final double scale;
 
   @override
-  double get minExtent => 24;
-
-  @override
-  double get maxExtent => 24;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    return Container(
-      color: AppColors.background.withValues(alpha: 0.92),
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 16, top: 8, bottom: 4),
       child: Row(
         children: [
           keyWidget,
           Text(
             letter,
-            style: AppTypography.labelMedium.copyWith(
-              color: AppColors.secondary,
+            style: TextStyle(
+              fontSize: 11,
               fontWeight: FontWeight.w700,
-              fontSize: 11 * scale,
+              color: AppColors.secondary,
             ),
           ),
         ],
       ),
     );
   }
+}
+
+class _SettingsTile extends StatelessWidget {
+  const _SettingsTile({required this.scale});
+
+  final double scale;
 
   @override
-  bool shouldRebuild(covariant _LetterHeaderDelegate oldDelegate) {
-    return oldDelegate.letter != letter ||
-        oldDelegate.keyWidget != keyWidget ||
-        oldDelegate.scale != scale;
+  Widget build(BuildContext context) {
+    return Container(
+      height: 72,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          splashColor: AppColors.secondary.withValues(alpha: 0.15),
+          highlightColor: AppColors.secondary.withValues(alpha: 0.08),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const StillmaxSettingsScreen(),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: AppColors.secondary,
+                  ),
+                  child: const Icon(Icons.tune, color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Stillmax Settings',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Personalise your launcher',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.white.withValues(alpha: 0.45),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  color: Colors.white.withValues(alpha: 0.30),
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

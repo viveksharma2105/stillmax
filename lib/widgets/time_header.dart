@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../state/app_list_provider.dart';
-import '../theme/app_theme.dart';
+import 'analog_clock.dart';
 import 'weather_widget.dart';
 
 final liveTimeProvider = StreamProvider<DateTime>((ref) {
@@ -19,44 +19,48 @@ class TimeHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(liveTimeProvider).valueOrNull ?? DateTime.now();
-    final scale =
-        ref.watch(settingsProvider).valueOrNull?.fontScaleFactor ?? 1.0;
+    final settings = ref.watch(settingsProvider).valueOrNull;
+    final clockStyle = settings?.clockStyle ?? 'digital';
     final timeText = DateFormat('HH:mm').format(now);
     final dateText = DateFormat('EEEE, MMMM d').format(now).toUpperCase();
 
-    return SizedBox(
-      height: 146,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+    return Stack(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (clockStyle == 'analog')
+                AnalogClock(time: now, size: 120)
+              else
                 Text(
                   timeText,
-                  style: AppTypography.displayLarge.copyWith(
-                    color: AppColors.onSurface,
-                    fontSize: 64 * scale,
-                    fontWeight: FontWeight.w700,
-                    height: 0.95,
+                  style: TextStyle(
+                    fontSize: 64,
+                    fontWeight: clockStyle == 'digital_thin'
+                        ? FontWeight.w200
+                        : FontWeight.w700,
+                    color: Colors.white,
+                    height: 1.0,
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  dateText,
-                  style: AppTypography.labelMedium.copyWith(
-                    color: AppColors.onSurfaceVariant,
-                    fontSize: 13 * scale,
-                    letterSpacing: 1.2,
-                  ),
+              const SizedBox(height: 4),
+              Text(
+                dateText,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.white.withValues(alpha: 0.55),
+                  letterSpacing: 1.5,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const Positioned(top: 8, right: 0, child: WeatherWidget()),
-        ],
-      ),
+        ),
+        const Positioned(top: 0, right: 16, child: WeatherWidget()),
+      ],
     );
   }
 }

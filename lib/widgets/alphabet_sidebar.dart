@@ -29,8 +29,8 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
   bool _showPopup = false;
   int _version = 0;
 
-  static const _itemHeight = 28.0;
-  static const _itemWidth = 22.0;
+  static const _itemHeight = 20.0;
+  static const _itemWidth = 24.0;
 
   bool _isEnabledLetter(String letter) =>
       widget.availableLetters.contains(letter);
@@ -75,34 +75,16 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
     super.dispose();
   }
 
-  double _cellScaleForIndex(int index, int activeIndex) {
-    final distance = (index - activeIndex).abs();
-    if (distance == 0) return 1.14;
-    if (distance == 1) return 1.06;
-    if (distance == 2) return 1.02;
-    return 1.0;
-  }
-
-  double _cellOpacityForIndex(int index, int activeIndex) {
-    final distance = (index - activeIndex).abs();
-    if (distance == 0) return 1.0;
-    if (distance == 1) return 0.88;
-    if (distance == 2) return 0.72;
-    return 0.6;
-  }
-
   @override
   Widget build(BuildContext context) {
     final activeIndex = _activeLetter == null
         ? -1
         : widget.letters.indexOf(_activeLetter!);
     final barOpacity = widget.isScrolling ? 0.4 : 1.0;
-    final indicatorTop =
-        (activeIndex < 0 ? 0 : activeIndex) * _itemHeight +
-        (_itemHeight - 18) / 2;
+    final indicatorTop = (activeIndex < 0 ? 0 : activeIndex) * _itemHeight;
 
     return Positioned(
-      right: 2,
+      right: 4,
       top: 152,
       bottom: 80,
       child: Stack(
@@ -142,13 +124,13 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                   children: [
                     if (activeIndex >= 0)
                       AnimatedPositioned(
-                        duration: const Duration(milliseconds: 110),
+                        duration: const Duration(milliseconds: 100),
                         curve: Curves.easeOut,
-                        right: 0,
+                        left: 0,
                         top: indicatorTop,
                         child: Container(
                           width: 2,
-                          height: 18,
+                          height: _itemHeight,
                           decoration: BoxDecoration(
                             color: AppColors.secondary,
                             borderRadius: BorderRadius.circular(999),
@@ -163,37 +145,7 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                             width: _itemWidth,
                             height: _itemHeight,
                             child: Center(
-                              child: AnimatedScale(
-                                duration: const Duration(milliseconds: 95),
-                                curve: Curves.easeOut,
-                                scale: activeIndex < 0
-                                    ? 1
-                                    : _cellScaleForIndex(i, activeIndex),
-                                child: AnimatedOpacity(
-                                  duration: const Duration(milliseconds: 95),
-                                  curve: Curves.easeOut,
-                                  opacity: _isEnabledLetter(widget.letters[i])
-                                      ? (activeIndex < 0
-                                            ? 0.88
-                                            : _cellOpacityForIndex(
-                                                i,
-                                                activeIndex,
-                                              ))
-                                      : 0.22,
-                                  child: Text(
-                                    widget.letters[i],
-                                    style: AppTypography.labelSmall.copyWith(
-                                      fontSize: 12 * widget.fontScaleFactor,
-                                      color: activeIndex == i
-                                          ? AppColors.secondary
-                                          : AppColors.onSurfaceVariant,
-                                      fontWeight: activeIndex == i
-                                          ? FontWeight.w800
-                                          : FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                              child: _buildLetterWidget(i, activeIndex),
                             ),
                           ),
                       ],
@@ -214,18 +166,18 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                   height: 56,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppColors.surface.withValues(alpha: 0.9),
-                    border: Border.all(
-                      color: AppColors.outlineVariant.withValues(alpha: 0.45),
-                    ),
+                    color: const Color(0xFF1C1C1E).withValues(alpha: 0.9),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     _activeLetter ?? '',
-                    style: AppTypography.titleLarge.copyWith(
-                      fontSize: 22 * widget.fontScaleFactor,
-                      color: AppColors.onSurface,
+                    style: TextStyle(
+                      fontSize: 22,
                       fontWeight: FontWeight.w700,
+                      color: _activeLetter == '★'
+                          ? AppColors.secondary
+                          : Colors.white,
                     ),
                   ),
                 ),
@@ -233,6 +185,50 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLetterWidget(int index, int activeIndex) {
+    final letter = widget.letters[index];
+    final isActive = activeIndex == index;
+    final isEnabled = _isEnabledLetter(letter);
+    final isStar = letter == '★';
+
+    double fontSize;
+    double opacity;
+
+    if (isStar) {
+      // Star is always active and in accent color
+      fontSize = 13;
+      opacity = 1.0;
+    } else if (!isEnabled) {
+      fontSize = 10;
+      opacity = 0.15;
+    } else if (isActive) {
+      fontSize = 13;
+      opacity = 1.0;
+    } else {
+      fontSize = 11;
+      opacity = 0.40;
+    }
+
+    return AnimatedScale(
+      duration: const Duration(milliseconds: 95),
+      curve: Curves.easeOut,
+      scale: isActive ? 1.3 : 1.0,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 95),
+        curve: Curves.easeOut,
+        opacity: opacity,
+        child: Text(
+          letter,
+          style: TextStyle(
+            fontSize: fontSize,
+            color: (isStar || isActive) ? AppColors.secondary : Colors.white,
+            fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
       ),
     );
   }

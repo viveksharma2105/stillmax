@@ -7,7 +7,6 @@ import 'package:http/http.dart' as http;
 
 import '../services/app_service.dart';
 import '../state/app_list_provider.dart';
-import '../theme/app_theme.dart';
 
 class WeatherInfo {
   const WeatherInfo({
@@ -234,8 +233,6 @@ class WeatherWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final weather = ref.watch(weatherInfoProvider).valueOrNull;
-    final scale =
-        ref.watch(settingsProvider).valueOrNull?.fontScaleFactor ?? 1.0;
 
     final emoji = weather == null
         ? '🌡️'
@@ -243,30 +240,14 @@ class WeatherWidget extends ConsumerWidget {
     final label = weather == null ? '--°' : '${weather.temperatureC.round()}°';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.onSurface.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.35),
-        ),
+        color: Colors.white.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            emoji,
-            style: AppTypography.bodyLarge.copyWith(fontSize: 14 * scale),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: AppTypography.labelMedium.copyWith(
-              color: AppColors.onSurface,
-              fontSize: 12 * scale,
-            ),
-          ),
-        ],
+      child: Text(
+        '$emoji $label',
+        style: const TextStyle(fontSize: 12, color: Colors.white),
       ),
     );
   }

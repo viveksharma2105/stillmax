@@ -72,6 +72,7 @@ class SettingsDb {
   late int iconShape; // 0=circle, 1=rounded, 2=teardrop, 3=squarish
   late double fontScaleFactor;
   late bool hapticsEnabled;
+  late String clockStyle; // 'digital', 'digital_thin', 'analog'
 }
 
 @collection
@@ -209,7 +210,8 @@ final settingsProvider = StreamProvider<SettingsDb>((ref) async* {
               ..showRecents = true
               ..iconShape = 1
               ..fontScaleFactor = 1.0
-              ..hapticsEnabled = true));
+              ..hapticsEnabled = true
+              ..clockStyle = 'digital'));
   });
 });
 
@@ -823,6 +825,56 @@ class DockAppsNotifier extends StateNotifier<List<AppInfo?>> {
             ..icon = app.icon
             ..position = i,
         );
+      }
+    });
+  }
+}
+
+final settingsNotifierProvider = Provider<SettingsNotifier>(
+  (ref) => SettingsNotifier(ref),
+);
+
+class SettingsNotifier {
+  SettingsNotifier(this.ref);
+
+  final Ref ref;
+
+  Future<void> updateClockStyle(String style) async {
+    final isar = await ref.read(isarProvider.future);
+    await isar.writeTxn(() async {
+      final settings = await isar.settingsDbs.get(1);
+      if (settings != null) {
+        settings.clockStyle = style;
+        await isar.settingsDbs.put(settings);
+      } else {
+        await isar.settingsDbs.put(
+          SettingsDb()
+            ..gridColumns = 4
+            ..iconSize = 56
+            ..showLabels = true
+            ..fontSize = 1
+            ..dockIconCount = 5
+            ..showDockLabels = false
+            ..doubleTapAction = 0
+            ..swipeLeftAction = 0
+            ..pinchAction = 0
+            ..showRecents = true
+            ..iconShape = 1
+            ..fontScaleFactor = 1.0
+            ..hapticsEnabled = true
+            ..clockStyle = style,
+        );
+      }
+    });
+  }
+
+  Future<void> updateFontScale(double scale) async {
+    final isar = await ref.read(isarProvider.future);
+    await isar.writeTxn(() async {
+      final settings = await isar.settingsDbs.get(1);
+      if (settings != null) {
+        settings.fontScaleFactor = scale;
+        await isar.settingsDbs.put(settings);
       }
     });
   }

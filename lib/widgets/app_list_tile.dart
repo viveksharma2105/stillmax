@@ -25,26 +25,6 @@ class AppListTile extends ConsumerWidget {
     final settings = ref.watch(settingsProvider).valueOrNull;
     final scale = settings?.fontScaleFactor ?? 1.0;
     final hapticsEnabled = settings?.hapticsEnabled ?? true;
-    final starredPackages = ref.watch(starredAppsProvider);
-    final canAddStarred = starred || starredPackages.length < kMaxStarredApps;
-
-    Future<void> toggleStarredWithFeedback() async {
-      final action = await ref
-          .read(starredAppsProvider.notifier)
-          .toggleStarred(app.packageName);
-      if (!context.mounted) {
-        return;
-      }
-      if (action == StarredResult.limitReached) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(
-              content: Text('Favourites limit reached. Remove an app first.'),
-            ),
-          );
-      }
-    }
 
     Future<void> launch() async {
       if (hapticsEnabled) {
@@ -71,31 +51,16 @@ class AppListTile extends ConsumerWidget {
           Offset.zero & renderObject.size,
         ),
         color: AppColors.surfaceContainerHigh,
-        items: [
-          const PopupMenuItem<String>(value: 'open', child: Text('Open')),
-          PopupMenuItem<String>(
-            value: starred ? 'unstar' : 'star',
-            enabled: starred || canAddStarred,
-            child: Text(starred ? 'Remove from starred' : 'Add to starred'),
-          ),
-          const PopupMenuItem<String>(
-            value: 'app_info',
-            child: Text('App info'),
-          ),
-          const PopupMenuItem<String>(
-            value: 'uninstall',
-            child: Text('Uninstall'),
-          ),
+        items: const [
+          PopupMenuItem<String>(value: 'open', child: Text('Open')),
+          PopupMenuItem<String>(value: 'app_info', child: Text('App info')),
+          PopupMenuItem<String>(value: 'uninstall', child: Text('Uninstall')),
         ],
       );
 
       switch (selected) {
         case 'open':
           await launch();
-          break;
-        case 'star':
-        case 'unstar':
-          await toggleStarredWithFeedback();
           break;
         case 'app_info':
           await ref.read(appServiceProvider).openAppInfo(app.packageName);
@@ -108,89 +73,105 @@ class AppListTile extends ConsumerWidget {
       }
     }
 
+    // Build app icon widget with null safety
+    Widget buildIcon() {
+      if (app.icon.isEmpty) {
+        // Show first letter if icon is missing
+        final firstLetter = app.name.isNotEmpty
+            ? app.name[0].toUpperCase()
+            : '?';
+        return Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            color: AppColors.secondary,
+          ),
+          child: Center(
+            child: Text(
+              firstLetter,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        );
+      }
+
+      return Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: AppColors.surfaceContainerHigh,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Image.memory(
+          app.icon,
+          fit: BoxFit.cover,
+          gaplessPlayback: true,
+          errorBuilder: (context, error, stackTrace) {
+            // Fallback to letter if image fails to load
+            final firstLetter = app.name.isNotEmpty
+                ? app.name[0].toUpperCase()
+                : '?';
+            return Container(
+              color: AppColors.secondary,
+              child: Center(
+                child: Text(
+                  firstLetter,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    }
+
     return Container(
-      height: 64,
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      height: 60,
+      margin: const EdgeInsets.only(bottom: 4),
       decoration: BoxDecoration(
-        color: AppColors.onSurface.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onLongPressStart: (details) => unawaited(openMenu(details)),
         child: Material(
-          color: AppColors.background.withValues(alpha: 0),
+          color: Colors.transparent,
           child: InkWell(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
+            splashColor: AppColors.secondary.withValues(alpha: 0.15),
+            highlightColor: AppColors.secondary.withValues(alpha: 0.08),
             onTap: () => unawaited(launch()),
-            child: Column(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            color: AppColors.surfaceContainerHigh,
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: app.icon.isNotEmpty
-                                ? Image.memory(
-                                    app.icon,
-                                    fit: BoxFit.cover,
-                                    gaplessPlayback: true,
-                                  )
-                                : const Icon(Icons.apps),
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Text(
-                            app.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.bodyLarge.copyWith(
-                              color: AppColors.onSurface,
-                              fontSize: 15 * scale,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: canAddStarred
-                              ? () => unawaited(toggleStarredWithFeedback())
-                              : null,
-                          child: Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Opacity(
-                              opacity: starred || canAddStarred ? 1 : 0.3,
-                              child: Icon(
-                                starred ? Icons.star : Icons.star_border,
-                                size: 18,
-                                color: starred
-                                    ? AppColors.secondary
-                                    : AppColors.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  buildIcon(),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      app.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15 * scale,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                ),
-                if (showDivider)
-                  Container(
-                    height: 1,
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                    color: AppColors.outlineVariant.withValues(alpha: 0.24),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
