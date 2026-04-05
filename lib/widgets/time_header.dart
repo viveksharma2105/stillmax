@@ -21,46 +21,81 @@ class TimeHeader extends ConsumerWidget {
     final now = ref.watch(liveTimeProvider).valueOrNull ?? DateTime.now();
     final settings = ref.watch(settingsProvider).valueOrNull;
     final clockStyle = settings?.clockStyle ?? 'digital';
-    final timeText = DateFormat('HH:mm').format(now);
+    final hourString = DateFormat('HH').format(now);
+    final minuteString = DateFormat('mm').format(now);
     final dateText = DateFormat('EEEE, MMMM d').format(now).toUpperCase();
 
-    return Stack(
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (clockStyle == 'analog')
-                AnalogClock(time: now, size: 120)
-              else
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+
+    return SizedBox(
+      width: double.infinity,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Clock and date — left aligned
+          Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              top: statusBarHeight + 16,
+              bottom: 8,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (clockStyle == 'analog')
+                  AnalogClock(time: now, size: 120)
+                else
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        hourString,
+                        style: TextStyle(
+                          fontSize: 72,
+                          fontWeight: clockStyle == 'digital_thin'
+                              ? FontWeight.w200
+                              : FontWeight.w700,
+                          color: const Color(0xFFE53935), // red
+                          height: 1.0,
+                        ),
+                      ),
+                      Text(
+                        ':$minuteString',
+                        style: TextStyle(
+                          fontSize: 72,
+                          fontWeight: clockStyle == 'digital_thin'
+                              ? FontWeight.w200
+                              : FontWeight.w700,
+                          color: Colors.white,
+                          height: 1.0,
+                        ),
+                      ),
+                    ],
+                  ),
+                const SizedBox(height: 4),
                 Text(
-                  timeText,
+                  dateText,
                   style: TextStyle(
-                    fontSize: 64,
-                    fontWeight: clockStyle == 'digital_thin'
-                        ? FontWeight.w200
-                        : FontWeight.w700,
-                    color: Colors.white,
-                    height: 1.0,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white.withValues(alpha: 0.55),
+                    letterSpacing: 1.5,
                   ),
                 ),
-              const SizedBox(height: 4),
-              Text(
-                dateText,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white.withValues(alpha: 0.55),
-                  letterSpacing: 1.5,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const Positioned(top: 0, right: 16, child: WeatherWidget()),
-      ],
+          // Weather — absolutely positioned top right
+          Positioned(
+            top: statusBarHeight + 16,
+            right: 16,
+            child: const WeatherWidget(),
+          ),
+        ],
+      ),
     );
   }
 }

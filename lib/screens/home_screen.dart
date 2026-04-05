@@ -102,6 +102,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final settings = ref.watch(settingsProvider).valueOrNull;
     final scale = settings?.fontScaleFactor ?? 1.0;
 
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+    final navBarHeight = MediaQuery.of(context).padding.bottom;
+
     final letters = grouped.keys.toList(growable: false);
     final sidebarLetters = [
       '★',
@@ -130,96 +133,93 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF090909),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. Clock + weather (fixed, never scrolls)
-            const Padding(
-              padding: EdgeInsets.only(top: 16),
-              child: TimeHeader(),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 2. Favourites header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Icon(Icons.star, color: AppColors.secondary, size: 16),
-                  const SizedBox(width: 6),
-                  Text(
-                    'FAVOURITES',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white.withValues(alpha: 0.60),
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            // 3. Favourites list — exactly as many tiles as starred apps (max 5)
-            // NO fixed height container — let it size to its content naturally
-            if (starredApps.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'No favourites yet. Manage favourites in Stillmax Settings.',
-                    style: TextStyle(
-                      fontSize: 12 * scale,
-                      color: Colors.white.withValues(alpha: 0.45),
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
+      body: Stack(
+        children: [
+          // Main unified scrollable list - everything scrolls together
+          CustomScrollView(
+            controller: _appsScrollController,
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // Item 0: TimeHeader (clock + weather)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(top: statusBarHeight),
+                  child: const TimeHeader(),
                 ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: starredApps
-                      .map(
-                        (app) => AppListTile(
-                          app: app,
-                          starred: true,
-                          showDivider: false,
+              ),
+
+              // Item 1: Spacing after clock
+              const SliverToBoxAdapter(child: SizedBox(height: 48)),
+
+              // Item 2: Favourites section header
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Icon(Icons.star, color: AppColors.secondary, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        'FAVOURITES',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white.withValues(alpha: 0.60),
+                          letterSpacing: 1.2,
                         ),
-                      )
-                      .toList(),
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
-            const SizedBox(height: 12),
+              // Spacing after favourites header
+              const SliverToBoxAdapter(child: SizedBox(height: 8)),
 
-            // 4. All Apps header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Text(
-                    'AZ',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.secondary,
-                      letterSpacing: 1.2,
+              // Item 3..N: Starred app tiles
+              if (starredApps.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'No favourites yet. Manage favourites in Stillmax Settings.',
+                        style: TextStyle(
+                          fontSize: 12 * scale,
+                          color: Colors.white.withValues(alpha: 0.45),
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  Text(
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: AppListTile(
+                        app: starredApps[index],
+                        starred: true,
+                        showDivider: false,
+                      ),
+                    );
+                  }, childCount: starredApps.length),
+                ),
+
+              // Item N+1: Spacing after favourites
+              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+
+              // Item N+2: All Apps section header
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
                     'ALL APPS',
                     style: TextStyle(
                       fontSize: 12,
@@ -228,49 +228,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       letterSpacing: 1.2,
                     ),
                   ),
-                ],
+                ),
+              ),
+
+              // Spacing after all apps header
+              const SliverToBoxAdapter(child: SizedBox(height: 4)),
+
+              // Item N+3..end: All app tiles alphabetically grouped
+              SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  return _buildAlphabetListItem(
+                    index,
+                    grouped,
+                    letters,
+                    starredPackages,
+                    scale,
+                  );
+                }, childCount: _calculateAlphabetItems(grouped, letters)),
+              ),
+
+              // Bottom padding for navigation bar
+              SliverToBoxAdapter(child: SizedBox(height: navBarHeight + 72)),
+            ],
+          ),
+
+          // Alphabet sidebar - stays pinned
+          if (letters.isNotEmpty)
+            Positioned(
+              right: 0,
+              top: statusBarHeight + 100,
+              bottom: navBarHeight + 80,
+              child: AlphabetSidebar(
+                letters: sidebarLetters,
+                availableLetters: availableSidebarLetters,
+                onLetterChanged: _jumpToLetter,
+                fontScaleFactor: scale,
+                isScrolling: _isAppsScrolling,
               ),
             ),
-
-            const SizedBox(height: 4),
-
-            // 5. All apps list — fills ALL remaining space, scrollable
-            Expanded(
-              child: Stack(
-                children: [
-                  ListView.builder(
-                    controller: _appsScrollController,
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.only(bottom: 80),
-                    itemCount: _calculateTotalItems(grouped, letters),
-                    itemBuilder: (context, index) {
-                      return _buildListItem(
-                        index,
-                        grouped,
-                        letters,
-                        starredPackages,
-                        scale,
-                      );
-                    },
-                  ),
-                  if (letters.isNotEmpty)
-                    AlphabetSidebar(
-                      letters: sidebarLetters,
-                      availableLetters: availableSidebarLetters,
-                      onLetterChanged: _jumpToLetter,
-                      fontScaleFactor: scale,
-                      isScrolling: _isAppsScrolling,
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
 
-  int _calculateTotalItems(
+  int _calculateAlphabetItems(
     Map<String, List<AppInfo>> grouped,
     List<String> letters,
   ) {
@@ -283,7 +284,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return count;
   }
 
-  Widget _buildListItem(
+  Widget _buildAlphabetListItem(
     int index,
     Map<String, List<AppInfo>> grouped,
     List<String> letters,

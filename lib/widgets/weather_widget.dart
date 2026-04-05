@@ -237,17 +237,40 @@ class WeatherWidget extends ConsumerWidget {
     final emoji = weather == null
         ? '🌡️'
         : _weatherEmoji(weather.conditionCode);
-    final label = weather == null ? '--°' : '${weather.temperatureC.round()}°';
+    final tempLabel = weather == null
+        ? '--°'
+        : '${weather.temperatureC.round()}°';
+    final condition = weather?.shortCondition ?? 'LOADING';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(24),
       ),
-      child: Text(
-        '$emoji $label',
-        style: const TextStyle(fontSize: 12, color: Colors.white),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 20)),
+          const SizedBox(height: 2),
+          Text(
+            tempLabel,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 1),
+          Text(
+            condition,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.white.withValues(alpha: 0.65),
+            ),
+          ),
+        ],
       ),
     );
   }
