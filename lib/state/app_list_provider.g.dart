@@ -10440,6 +10440,1406 @@ extension StarredAppDbQueryProperty
 // coverage:ignore-file
 // ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
 
+extension GetBlackBoxSettingsDbCollection on Isar {
+  IsarCollection<BlackBoxSettingsDb> get blackBoxSettingsDbs =>
+      this.collection();
+}
+
+const BlackBoxSettingsDbSchema = CollectionSchema(
+  name: r'BlackBoxSettingsDb',
+  id: -5299605810541596601,
+  properties: {
+    r'isEnabled': PropertySchema(
+      id: 0,
+      name: r'isEnabled',
+      type: IsarType.bool,
+    ),
+    r'passwordHash': PropertySchema(
+      id: 1,
+      name: r'passwordHash',
+      type: IsarType.string,
+    )
+  },
+  estimateSize: _blackBoxSettingsDbEstimateSize,
+  serialize: _blackBoxSettingsDbSerialize,
+  deserialize: _blackBoxSettingsDbDeserialize,
+  deserializeProp: _blackBoxSettingsDbDeserializeProp,
+  idName: r'id',
+  indexes: {},
+  links: {},
+  embeddedSchemas: {},
+  getId: _blackBoxSettingsDbGetId,
+  getLinks: _blackBoxSettingsDbGetLinks,
+  attach: _blackBoxSettingsDbAttach,
+  version: '3.1.0+1',
+);
+
+int _blackBoxSettingsDbEstimateSize(
+  BlackBoxSettingsDb object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  bytesCount += 3 + object.passwordHash.length * 3;
+  return bytesCount;
+}
+
+void _blackBoxSettingsDbSerialize(
+  BlackBoxSettingsDb object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeBool(offsets[0], object.isEnabled);
+  writer.writeString(offsets[1], object.passwordHash);
+}
+
+BlackBoxSettingsDb _blackBoxSettingsDbDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = BlackBoxSettingsDb();
+  object.id = id;
+  object.isEnabled = reader.readBool(offsets[0]);
+  object.passwordHash = reader.readString(offsets[1]);
+  return object;
+}
+
+P _blackBoxSettingsDbDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readBool(offset)) as P;
+    case 1:
+      return (reader.readString(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+Id _blackBoxSettingsDbGetId(BlackBoxSettingsDb object) {
+  return object.id;
+}
+
+List<IsarLinkBase<dynamic>> _blackBoxSettingsDbGetLinks(
+    BlackBoxSettingsDb object) {
+  return [];
+}
+
+void _blackBoxSettingsDbAttach(
+    IsarCollection<dynamic> col, Id id, BlackBoxSettingsDb object) {
+  object.id = id;
+}
+
+extension BlackBoxSettingsDbQueryWhereSort
+    on QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QWhere> {
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterWhere> anyId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+}
+
+extension BlackBoxSettingsDbQueryWhere
+    on QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QWhereClause> {
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterWhereClause>
+      idEqualTo(Id id) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IdWhereClause.between(
+        lower: id,
+        upper: id,
+      ));
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterWhereClause>
+      idNotEqualTo(Id id) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: id, includeUpper: false),
+            )
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: id, includeLower: false),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: id, includeLower: false),
+            )
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: id, includeUpper: false),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterWhereClause>
+      idGreaterThan(Id id, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.greaterThan(lower: id, includeLower: include),
+      );
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterWhereClause>
+      idLessThan(Id id, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.lessThan(upper: id, includeUpper: include),
+      );
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterWhereClause>
+      idBetween(
+    Id lowerId,
+    Id upperId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IdWhereClause.between(
+        lower: lowerId,
+        includeLower: includeLower,
+        upper: upperId,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+}
+
+extension BlackBoxSettingsDbQueryFilter
+    on QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QFilterCondition> {
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterFilterCondition>
+      idEqualTo(Id value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterFilterCondition>
+      idGreaterThan(
+    Id value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterFilterCondition>
+      idLessThan(
+    Id value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterFilterCondition>
+      idBetween(
+    Id lower,
+    Id upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'id',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterFilterCondition>
+      isEnabledEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isEnabled',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterFilterCondition>
+      passwordHashEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'passwordHash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterFilterCondition>
+      passwordHashGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'passwordHash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterFilterCondition>
+      passwordHashLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'passwordHash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterFilterCondition>
+      passwordHashBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'passwordHash',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterFilterCondition>
+      passwordHashStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'passwordHash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterFilterCondition>
+      passwordHashEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'passwordHash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterFilterCondition>
+      passwordHashContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'passwordHash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterFilterCondition>
+      passwordHashMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'passwordHash',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterFilterCondition>
+      passwordHashIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'passwordHash',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterFilterCondition>
+      passwordHashIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'passwordHash',
+        value: '',
+      ));
+    });
+  }
+}
+
+extension BlackBoxSettingsDbQueryObject
+    on QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QFilterCondition> {}
+
+extension BlackBoxSettingsDbQueryLinks
+    on QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QFilterCondition> {}
+
+extension BlackBoxSettingsDbQuerySortBy
+    on QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QSortBy> {
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterSortBy>
+      sortByIsEnabled() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isEnabled', Sort.asc);
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterSortBy>
+      sortByIsEnabledDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isEnabled', Sort.desc);
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterSortBy>
+      sortByPasswordHash() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'passwordHash', Sort.asc);
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterSortBy>
+      sortByPasswordHashDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'passwordHash', Sort.desc);
+    });
+  }
+}
+
+extension BlackBoxSettingsDbQuerySortThenBy
+    on QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QSortThenBy> {
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterSortBy>
+      thenById() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'id', Sort.asc);
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterSortBy>
+      thenByIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterSortBy>
+      thenByIsEnabled() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isEnabled', Sort.asc);
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterSortBy>
+      thenByIsEnabledDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isEnabled', Sort.desc);
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterSortBy>
+      thenByPasswordHash() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'passwordHash', Sort.asc);
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QAfterSortBy>
+      thenByPasswordHashDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'passwordHash', Sort.desc);
+    });
+  }
+}
+
+extension BlackBoxSettingsDbQueryWhereDistinct
+    on QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QDistinct> {
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QDistinct>
+      distinctByIsEnabled() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isEnabled');
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QDistinct>
+      distinctByPasswordHash({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'passwordHash', caseSensitive: caseSensitive);
+    });
+  }
+}
+
+extension BlackBoxSettingsDbQueryProperty
+    on QueryBuilder<BlackBoxSettingsDb, BlackBoxSettingsDb, QQueryProperty> {
+  QueryBuilder<BlackBoxSettingsDb, int, QQueryOperations> idProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, bool, QQueryOperations> isEnabledProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isEnabled');
+    });
+  }
+
+  QueryBuilder<BlackBoxSettingsDb, String, QQueryOperations>
+      passwordHashProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'passwordHash');
+    });
+  }
+}
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+extension GetHiddenAppDbCollection on Isar {
+  IsarCollection<HiddenAppDb> get hiddenAppDbs => this.collection();
+}
+
+const HiddenAppDbSchema = CollectionSchema(
+  name: r'HiddenAppDb',
+  id: 2325949796745432027,
+  properties: {
+    r'appName': PropertySchema(
+      id: 0,
+      name: r'appName',
+      type: IsarType.string,
+    ),
+    r'icon': PropertySchema(
+      id: 1,
+      name: r'icon',
+      type: IsarType.longList,
+    ),
+    r'packageName': PropertySchema(
+      id: 2,
+      name: r'packageName',
+      type: IsarType.string,
+    )
+  },
+  estimateSize: _hiddenAppDbEstimateSize,
+  serialize: _hiddenAppDbSerialize,
+  deserialize: _hiddenAppDbDeserialize,
+  deserializeProp: _hiddenAppDbDeserializeProp,
+  idName: r'id',
+  indexes: {
+    r'packageName': IndexSchema(
+      id: -3211024755902609907,
+      name: r'packageName',
+      unique: true,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'packageName',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    )
+  },
+  links: {},
+  embeddedSchemas: {},
+  getId: _hiddenAppDbGetId,
+  getLinks: _hiddenAppDbGetLinks,
+  attach: _hiddenAppDbAttach,
+  version: '3.1.0+1',
+);
+
+int _hiddenAppDbEstimateSize(
+  HiddenAppDb object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  bytesCount += 3 + object.appName.length * 3;
+  bytesCount += 3 + object.icon.length * 8;
+  bytesCount += 3 + object.packageName.length * 3;
+  return bytesCount;
+}
+
+void _hiddenAppDbSerialize(
+  HiddenAppDb object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeString(offsets[0], object.appName);
+  writer.writeLongList(offsets[1], object.icon);
+  writer.writeString(offsets[2], object.packageName);
+}
+
+HiddenAppDb _hiddenAppDbDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = HiddenAppDb();
+  object.appName = reader.readString(offsets[0]);
+  object.icon = reader.readLongList(offsets[1]) ?? [];
+  object.id = id;
+  object.packageName = reader.readString(offsets[2]);
+  return object;
+}
+
+P _hiddenAppDbDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readString(offset)) as P;
+    case 1:
+      return (reader.readLongList(offset) ?? []) as P;
+    case 2:
+      return (reader.readString(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+Id _hiddenAppDbGetId(HiddenAppDb object) {
+  return object.id;
+}
+
+List<IsarLinkBase<dynamic>> _hiddenAppDbGetLinks(HiddenAppDb object) {
+  return [];
+}
+
+void _hiddenAppDbAttach(
+    IsarCollection<dynamic> col, Id id, HiddenAppDb object) {
+  object.id = id;
+}
+
+extension HiddenAppDbByIndex on IsarCollection<HiddenAppDb> {
+  Future<HiddenAppDb?> getByPackageName(String packageName) {
+    return getByIndex(r'packageName', [packageName]);
+  }
+
+  HiddenAppDb? getByPackageNameSync(String packageName) {
+    return getByIndexSync(r'packageName', [packageName]);
+  }
+
+  Future<bool> deleteByPackageName(String packageName) {
+    return deleteByIndex(r'packageName', [packageName]);
+  }
+
+  bool deleteByPackageNameSync(String packageName) {
+    return deleteByIndexSync(r'packageName', [packageName]);
+  }
+
+  Future<List<HiddenAppDb?>> getAllByPackageName(
+      List<String> packageNameValues) {
+    final values = packageNameValues.map((e) => [e]).toList();
+    return getAllByIndex(r'packageName', values);
+  }
+
+  List<HiddenAppDb?> getAllByPackageNameSync(List<String> packageNameValues) {
+    final values = packageNameValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'packageName', values);
+  }
+
+  Future<int> deleteAllByPackageName(List<String> packageNameValues) {
+    final values = packageNameValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'packageName', values);
+  }
+
+  int deleteAllByPackageNameSync(List<String> packageNameValues) {
+    final values = packageNameValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'packageName', values);
+  }
+
+  Future<Id> putByPackageName(HiddenAppDb object) {
+    return putByIndex(r'packageName', object);
+  }
+
+  Id putByPackageNameSync(HiddenAppDb object, {bool saveLinks = true}) {
+    return putByIndexSync(r'packageName', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByPackageName(List<HiddenAppDb> objects) {
+    return putAllByIndex(r'packageName', objects);
+  }
+
+  List<Id> putAllByPackageNameSync(List<HiddenAppDb> objects,
+      {bool saveLinks = true}) {
+    return putAllByIndexSync(r'packageName', objects, saveLinks: saveLinks);
+  }
+}
+
+extension HiddenAppDbQueryWhereSort
+    on QueryBuilder<HiddenAppDb, HiddenAppDb, QWhere> {
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterWhere> anyId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+}
+
+extension HiddenAppDbQueryWhere
+    on QueryBuilder<HiddenAppDb, HiddenAppDb, QWhereClause> {
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterWhereClause> idEqualTo(Id id) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IdWhereClause.between(
+        lower: id,
+        upper: id,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterWhereClause> idNotEqualTo(
+      Id id) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: id, includeUpper: false),
+            )
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: id, includeLower: false),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: id, includeLower: false),
+            )
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: id, includeUpper: false),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterWhereClause> idGreaterThan(Id id,
+      {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.greaterThan(lower: id, includeLower: include),
+      );
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterWhereClause> idLessThan(Id id,
+      {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.lessThan(upper: id, includeUpper: include),
+      );
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterWhereClause> idBetween(
+    Id lowerId,
+    Id upperId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IdWhereClause.between(
+        lower: lowerId,
+        includeLower: includeLower,
+        upper: upperId,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterWhereClause> packageNameEqualTo(
+      String packageName) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'packageName',
+        value: [packageName],
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterWhereClause>
+      packageNameNotEqualTo(String packageName) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'packageName',
+              lower: [],
+              upper: [packageName],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'packageName',
+              lower: [packageName],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'packageName',
+              lower: [packageName],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'packageName',
+              lower: [],
+              upper: [packageName],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+}
+
+extension HiddenAppDbQueryFilter
+    on QueryBuilder<HiddenAppDb, HiddenAppDb, QFilterCondition> {
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition> appNameEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'appName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      appNameGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'appName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition> appNameLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'appName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition> appNameBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'appName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      appNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'appName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition> appNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'appName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition> appNameContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'appName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition> appNameMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'appName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      appNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'appName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      appNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'appName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      iconElementEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'icon',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      iconElementGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'icon',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      iconElementLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'icon',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      iconElementBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'icon',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      iconLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'icon',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition> iconIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'icon',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      iconIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'icon',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      iconLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'icon',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      iconLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'icon',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      iconLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'icon',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition> idEqualTo(
+      Id value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition> idGreaterThan(
+    Id value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition> idLessThan(
+    Id value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition> idBetween(
+    Id lower,
+    Id upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'id',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      packageNameEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'packageName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      packageNameGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'packageName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      packageNameLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'packageName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      packageNameBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'packageName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      packageNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'packageName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      packageNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'packageName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      packageNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'packageName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      packageNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'packageName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      packageNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'packageName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterFilterCondition>
+      packageNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'packageName',
+        value: '',
+      ));
+    });
+  }
+}
+
+extension HiddenAppDbQueryObject
+    on QueryBuilder<HiddenAppDb, HiddenAppDb, QFilterCondition> {}
+
+extension HiddenAppDbQueryLinks
+    on QueryBuilder<HiddenAppDb, HiddenAppDb, QFilterCondition> {}
+
+extension HiddenAppDbQuerySortBy
+    on QueryBuilder<HiddenAppDb, HiddenAppDb, QSortBy> {
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterSortBy> sortByAppName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'appName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterSortBy> sortByAppNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'appName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterSortBy> sortByPackageName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'packageName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterSortBy> sortByPackageNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'packageName', Sort.desc);
+    });
+  }
+}
+
+extension HiddenAppDbQuerySortThenBy
+    on QueryBuilder<HiddenAppDb, HiddenAppDb, QSortThenBy> {
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterSortBy> thenByAppName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'appName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterSortBy> thenByAppNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'appName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterSortBy> thenById() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'id', Sort.asc);
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterSortBy> thenByIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterSortBy> thenByPackageName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'packageName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QAfterSortBy> thenByPackageNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'packageName', Sort.desc);
+    });
+  }
+}
+
+extension HiddenAppDbQueryWhereDistinct
+    on QueryBuilder<HiddenAppDb, HiddenAppDb, QDistinct> {
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QDistinct> distinctByAppName(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'appName', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QDistinct> distinctByIcon() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'icon');
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, HiddenAppDb, QDistinct> distinctByPackageName(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'packageName', caseSensitive: caseSensitive);
+    });
+  }
+}
+
+extension HiddenAppDbQueryProperty
+    on QueryBuilder<HiddenAppDb, HiddenAppDb, QQueryProperty> {
+  QueryBuilder<HiddenAppDb, int, QQueryOperations> idProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, String, QQueryOperations> appNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'appName');
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, List<int>, QQueryOperations> iconProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'icon');
+    });
+  }
+
+  QueryBuilder<HiddenAppDb, String, QQueryOperations> packageNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'packageName');
+    });
+  }
+}
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
 extension GetWeatherCacheDbCollection on Isar {
   IsarCollection<WeatherCacheDb> get weatherCacheDbs => this.collection();
 }

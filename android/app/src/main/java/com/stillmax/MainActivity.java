@@ -121,6 +121,9 @@ public class MainActivity extends FlutterActivity {
                         case "launchApp":
                             launchApp(call.argument("packageName"), result);
                             break;
+                        case "launchAppHidden":
+                            launchAppHidden(call.argument("packageName"), result);
+                            break;
                         case "setWallpaper":
                             setWallpaper(call.argument("imagePath"), result);
                             break;
@@ -745,6 +748,29 @@ public class MainActivity extends FlutterActivity {
 
             if (launchIntent != null) {
                 launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(launchIntent);
+                result.success(true);
+            } else {
+                result.error("APP_NOT_FOUND", "No launch intent found for package: " + packageName, null);
+            }
+        } catch (Exception e) {
+            result.error("LAUNCH_ERROR", "Failed to launch app: " + e.getMessage(), null);
+        }
+    }
+
+    private void launchAppHidden(String packageName, MethodChannel.Result result) {
+        try {
+            if (packageName == null || packageName.trim().isEmpty()) {
+                result.error("INVALID_ARGUMENT", "Package name is required", null);
+                return;
+            }
+            PackageManager pm = getPackageManager();
+            Intent launchIntent = pm.getLaunchIntentForPackage(packageName);
+
+            if (launchIntent != null) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
                 startActivity(launchIntent);
                 result.success(true);
             } else {

@@ -11,6 +11,7 @@ import '../services/icon_theme_service.dart';
 import '../state/app_list_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/widget_picker_sheet.dart';
+import 'black_box_password_screen.dart';
 
 class StillmaxSettingsScreen extends ConsumerStatefulWidget {
   const StillmaxSettingsScreen({super.key});
@@ -213,6 +214,63 @@ class _StillmaxSettingsScreenState
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to reset wallpaper')),
+      );
+    }
+  }
+
+  Future<void> _openBlackBoxSettings() async {
+    final notifier = ref.read(blackBoxNotifierProvider);
+    final isPasswordSet = await notifier.isPasswordSet();
+    if (!mounted) return;
+
+    if (!isPasswordSet) {
+      // Setup password first
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              const BlackBoxPasswordScreen(mode: BlackBoxMode.setup),
+        ),
+      );
+    } else {
+      // Show options
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: AppColors.glassDark,
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.lock_open),
+                title: const Text('Open Black Box'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const BlackBoxPasswordScreen(
+                        mode: BlackBoxMode.verify,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.password),
+                title: const Text('Change PIN'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const BlackBoxPasswordScreen(
+                        mode: BlackBoxMode.change,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
       );
     }
   }
@@ -500,6 +558,67 @@ class _StillmaxSettingsScreenState
                 selected: (scale - 1.15).abs() < 0.01,
                 onTap: () => unawaited(_updateFontSize(1.15)),
                 scale: scale,
+              ),
+              const SizedBox(height: 32),
+
+              // Black Box Section
+              _SectionTitle(title: 'Black Box', scale: scale),
+              Text(
+                'Hide apps in a password-protected vault',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                  fontSize: 12 * scale,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerHigh.withValues(alpha: 0.42),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.lock_outline,
+                        color: AppColors.secondary,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Hidden Apps Vault',
+                            style: AppTypography.bodyLarge.copyWith(
+                              fontSize: 15 * scale,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tap media player 4x to access',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.onSurfaceVariant,
+                              fontSize: 12 * scale,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => unawaited(_openBlackBoxSettings()),
+                      child: const Text('Manage'),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 32),
 

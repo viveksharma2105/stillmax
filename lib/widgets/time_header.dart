@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../screens/black_box_password_screen.dart';
 import '../services/app_service.dart';
 import '../state/app_list_provider.dart';
 import '../theme/app_theme.dart';
@@ -43,6 +44,8 @@ class TimeHeader extends ConsumerStatefulWidget {
 class _TimeHeaderState extends ConsumerState<TimeHeader> {
   late final PageController _pageController;
   int _currentPage = 1;
+  int _mediaCardTapCount = 0;
+  DateTime? _lastMediaCardTap;
 
   @override
   void initState() {
@@ -135,6 +138,36 @@ class _TimeHeaderState extends ConsumerState<TimeHeader> {
     } else {
       await ref.read(settingsNotifierProvider).setRightWidgetSlot(null);
     }
+  }
+
+  void _onMediaCardTap() {
+    final now = DateTime.now();
+    if (_lastMediaCardTap != null &&
+        now.difference(_lastMediaCardTap!).inMilliseconds < 500) {
+      _mediaCardTapCount++;
+      if (_mediaCardTapCount >= 4) {
+        _mediaCardTapCount = 0;
+        _lastMediaCardTap = null;
+        _openBlackBox();
+      }
+    } else {
+      _mediaCardTapCount = 1;
+    }
+    _lastMediaCardTap = now;
+  }
+
+  Future<void> _openBlackBox() async {
+    final notifier = ref.read(blackBoxNotifierProvider);
+    final isPasswordSet = await notifier.isPasswordSet();
+    if (!mounted) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BlackBoxPasswordScreen(
+          mode: isPasswordSet ? BlackBoxMode.verify : BlackBoxMode.setup,
+        ),
+      ),
+    );
   }
 
   Widget _buildSlot({required int? widgetId, required bool leftSlot}) {
@@ -364,14 +397,17 @@ class _TimeHeaderState extends ConsumerState<TimeHeader> {
               controller: _pageController,
               onPageChanged: (index) => setState(() => _currentPage = index),
               children: [
-                Padding(
-                  padding: EdgeInsets.only(
-                    left: 16,
-                    right: 16,
-                    top: statusBarHeight + 8.0,
-                    bottom: 16,
+                GestureDetector(
+                  onTap: _onMediaCardTap,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: 16,
+                      right: 16,
+                      top: statusBarHeight + 8.0,
+                      bottom: 16,
+                    ),
+                    child: _buildMediaPlayerCard(mediaInfo),
                   ),
-                  child: _buildMediaPlayerCard(mediaInfo),
                 ),
                 Padding(
                   padding: EdgeInsets.only(

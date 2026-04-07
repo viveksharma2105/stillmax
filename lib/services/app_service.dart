@@ -46,6 +46,13 @@ class AppService {
     return result ?? false;
   }
 
+  Future<bool> launchAppHidden(String packageName) async {
+    final bool? result = await _channel.invokeMethod('launchAppHidden', {
+      'packageName': packageName,
+    });
+    return result ?? false;
+  }
+
   Future<bool> setWallpaper(String imagePath) async {
     final bool? result = await _channel.invokeMethod('setWallpaper', {
       'imagePath': imagePath,

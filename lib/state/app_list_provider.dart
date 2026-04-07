@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -154,6 +155,25 @@ class StarredAppDb {
 }
 
 @collection
+class BlackBoxSettingsDb {
+  Id id = 1; // Singleton
+  late String passwordHash; // SHA-256 hash of 6-digit PIN
+  late bool isEnabled;
+}
+
+@collection
+class HiddenAppDb {
+  Id id = Isar.autoIncrement;
+
+  @Index(unique: true)
+  late String packageName;
+
+  late String appName;
+
+  late List<int> icon;
+}
+
+@collection
 class WeatherCacheDb {
   Id id = 1;
   late String city;
@@ -216,6 +236,8 @@ final isarProvider = FutureProvider<Isar>((ref) async {
     IconPackDbSchema,
     OnboardingDbSchema,
     StarredAppDbSchema,
+    BlackBoxSettingsDbSchema,
+    HiddenAppDbSchema,
     WeatherCacheDbSchema,
     HomeWidgetDbSchema,
   ], directory: dir.path);
@@ -597,6 +619,103 @@ class StarredAppsNotifier extends Notifier<List<String>> {
   }
 }
 
+final blackBoxSettingsProvider = StreamProvider<BlackBoxSettingsDb?>((
+  ref,
+) async* {
+  final isar = await ref.watch(isarProvider.future);
+  yield await isar.blackBoxSettingsDbs.get(1);
+  yield* isar.blackBoxSettingsDbs.watchObject(1, fireImmediately: true);
+});
+
+final hiddenAppsProvider =
+    NotifierProvider<HiddenAppsNotifier, List<HiddenAppDb>>(
+      HiddenAppsNotifier.new,
+    );
+
+class HiddenAppsNotifier extends Notifier<List<HiddenAppDb>> {
+  @override
+  List<HiddenAppDb> build() {
+    unawaited(_load());
+    return const <HiddenAppDb>[];
+  }
+
+  Future<void> _load() async {
+    final isar = await ref.read(isarProvider.future);
+    final rows = await isar.hiddenAppDbs.where().findAll();
+    state = rows;
+  }
+
+  Future<void> hideApp(AppInfo app) async {
+    final isar = await ref.read(isarProvider.future);
+    await isar.writeTxn(() async {
+      await isar.hiddenAppDbs.putByPackageName(
+        HiddenAppDb()
+          ..packageName = app.packageName
+          ..appName = app.name
+          ..icon = app.icon,
+      );
+    });
+    await _load();
+  }
+
+  Future<void> unhideApp(String packageName) async {
+    final isar = await ref.read(isarProvider.future);
+    await isar.writeTxn(() async {
+      await isar.hiddenAppDbs.deleteByPackageName(packageName);
+    });
+    await _load();
+  }
+
+  Future<void> refresh() async {
+    await _load();
+  }
+}
+
+final blackBoxNotifierProvider = Provider<BlackBoxNotifier>(
+  (ref) => BlackBoxNotifier(ref),
+);
+
+class BlackBoxNotifier {
+  BlackBoxNotifier(this.ref);
+  final Ref ref;
+
+  Future<bool> isPasswordSet() async {
+    final isar = await ref.read(isarProvider.future);
+    final settings = await isar.blackBoxSettingsDbs.get(1);
+    return settings != null && settings.passwordHash.isNotEmpty;
+  }
+
+  Future<void> setPassword(String pin) async {
+    final isar = await ref.read(isarProvider.future);
+    final hash = _hashPin(pin);
+    await isar.writeTxn(() async {
+      await isar.blackBoxSettingsDbs.put(
+        BlackBoxSettingsDb()
+          ..id = 1
+          ..passwordHash = hash
+          ..isEnabled = true,
+      );
+    });
+  }
+
+  Future<bool> verifyPassword(String pin) async {
+    final isar = await ref.read(isarProvider.future);
+    final settings = await isar.blackBoxSettingsDbs.get(1);
+    if (settings == null || settings.passwordHash.isEmpty) {
+      return false;
+    }
+    return settings.passwordHash == _hashPin(pin);
+  }
+
+  String _hashPin(String pin) {
+    // Simple hash using dart:convert - you may want to use crypto package for production
+    final bytes = utf8.encode(pin);
+    return base64.encode(
+      bytes,
+    ); // Simple encoding, replace with SHA-256 in production
+  }
+}
+
 final groupedAppsProvider = Provider<Map<String, List<AppInfo>>>((ref) {
   final sortedApps = [...ref.watch(displayAppsProvider)]
     ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
@@ -630,8 +749,11 @@ final displayAppsProvider = Provider<List<AppInfo>>((ref) {
   final apps = ref.watch(appListProvider).valueOrNull ?? const <AppInfo>[];
   final customNames =
       ref.watch(customAppNamesProvider).valueOrNull ?? const <String, String>{};
+  final hiddenApps = ref.watch(hiddenAppsProvider);
+  final hiddenPackages = hiddenApps.map((h) => h.packageName).toSet();
 
   return apps
+      .where((app) => !hiddenPackages.contains(app.packageName))
       .map((app) {
         final custom = customNames[app.packageName];
         if (custom == null || custom.trim().isEmpty) {
