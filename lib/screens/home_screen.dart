@@ -155,138 +155,117 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         children: [
           Scaffold(
             backgroundColor: const Color(0xFF090909),
-            body: Column(
-              children: [
-                // ZONE 1 — Fixed header, never scrolls
-                Padding(
-                  padding: EdgeInsets.only(top: clockSpacing),
-                  child: const TimeHeader(),
-                ),
+            body: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onLongPress: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const StillmaxSettingsScreen(),
+                  ),
+                );
+              },
+              onVerticalDragEnd: (details) {
+                // Swipe up = negative velocity (lowered threshold for easier trigger)
+                if (details.primaryVelocity != null &&
+                    details.primaryVelocity! < -100) {
+                  _openAppDrawer();
+                }
+              },
+              child: Column(
+                children: [
+                  // ZONE 1 — Fixed header, never scrolls
+                  Padding(
+                    padding: EdgeInsets.only(top: clockSpacing),
+                    child: const TimeHeader(),
+                  ),
 
-                // ZONE 2 — Everything else scrolls
-                Expanded(
-                  child: GestureDetector(
-                    onVerticalDragEnd: (details) {
-                      // Swipe up detection (negative velocity = upward)
-                      if (details.primaryVelocity != null &&
-                          details.primaryVelocity! < -300) {
-                        _openAppDrawer();
-                      }
-                    },
-                    onLongPress: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const StillmaxSettingsScreen(),
-                        ),
-                      );
-                    },
+                  // ZONE 2 — Favorites list (static, no scroll)
+                  Expanded(
                     child: Stack(
                       children: [
-                        CustomScrollView(
-                          controller: _appsScrollController,
-                          primary: false,
-                          physics: const BouncingScrollPhysics(),
-                          slivers: [
-                            // Spacing before favorites section (adjustable)
-                            SliverToBoxAdapter(
-                              child: SizedBox(height: favoritesSpacing),
-                            ),
+                        ListView(
+                          physics: const NeverScrollableScrollPhysics(),
+                          padding: EdgeInsets.zero,
+                          children: [
+                            SizedBox(height: favoritesSpacing),
 
-                            // Dynamic section header based on selected letter
-                            SliverToBoxAdapter(
-                              child: Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 16,
-                                  top: 4,
-                                  bottom: 2,
-                                ),
-                                child: Row(
-                                  children: [
-                                    if (_selectedLetter == '★') ...[
-                                      Icon(
-                                        Icons.star,
-                                        color: AppColors.secondary,
-                                        size: 16,
-                                      ),
-                                      const SizedBox(width: 6),
-                                    ],
-                                    Text(
-                                      sectionTitle,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white.withValues(
-                                          alpha: 0.35,
-                                        ),
-                                        letterSpacing: 1.0,
-                                      ),
+                            // Section header
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                left: 16,
+                                top: 4,
+                                bottom: 2,
+                              ),
+                              child: Row(
+                                children: [
+                                  if (_selectedLetter == '★') ...[
+                                    Icon(
+                                      Icons.star,
+                                      color: AppColors.secondary,
+                                      size: 16,
                                     ),
+                                    const SizedBox(width: 6),
                                   ],
-                                ),
+                                  Text(
+                                    sectionTitle,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white.withValues(
+                                        alpha: 0.35,
+                                      ),
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
 
                             // App tiles
                             if (displayedApps.isEmpty)
-                              SliverToBoxAdapter(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
+                                  child: Text(
+                                    _selectedLetter == '★'
+                                        ? 'No favourites yet. Manage favourites in Stillmax Settings.'
+                                        : 'No apps starting with $_selectedLetter',
+                                    style: TextStyle(
+                                      fontSize: 12 * scale,
                                       color: Colors.white.withValues(
-                                        alpha: 0.05,
+                                        alpha: 0.45,
                                       ),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      _selectedLetter == '★'
-                                          ? 'No favourites yet. Manage favourites in Stillmax Settings.'
-                                          : 'No apps starting with $_selectedLetter',
-                                      style: TextStyle(
-                                        fontSize: 12 * scale,
-                                        color: Colors.white.withValues(
-                                          alpha: 0.45,
-                                        ),
-                                        fontStyle: FontStyle.italic,
-                                      ),
+                                      fontStyle: FontStyle.italic,
                                     ),
                                   ),
                                 ),
                               )
                             else
-                              SliverList(
-                                delegate: SliverChildBuilderDelegate((
-                                  context,
-                                  index,
-                                ) {
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
+                              ...displayedApps.map(
+                                (app) => Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  child: AppListTile(
+                                    app: app,
+                                    starred: starredPackages.contains(
+                                      app.packageName,
                                     ),
-                                    child: AppListTile(
-                                      app: displayedApps[index],
-                                      starred: starredPackages.contains(
-                                        displayedApps[index].packageName,
-                                      ),
-                                      showDivider: false,
-                                    ),
-                                  );
-                                }, childCount: displayedApps.length),
+                                    showDivider: false,
+                                  ),
+                                ),
                               ),
 
-                            // Spacing after favourites
-                            const SliverToBoxAdapter(
-                              child: SizedBox(height: 12),
-                            ),
-
-                            // Bottom padding for navigation bar
-                            SliverToBoxAdapter(
-                              child: SizedBox(height: navBarHeight + 80),
-                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(height: navBarHeight + 80),
                           ],
                         ),
 
@@ -337,8 +316,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           if (_showAppDrawer)

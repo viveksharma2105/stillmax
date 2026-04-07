@@ -34,10 +34,13 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final Map<String, GlobalKey> _sectionKeys = {};
+  final DraggableScrollableController _sheetController =
+      DraggableScrollableController();
 
   @override
   void initState() {
     super.initState();
+    _sheetController.addListener(_onSheetChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       // Only auto-focus search bar if no initial letter is provided
@@ -49,8 +52,17 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     });
   }
 
+  void _onSheetChanged() {
+    // Close drawer when dragged below 60% of screen
+    if (_sheetController.size < 0.6) {
+      _dismissDrawer();
+    }
+  }
+
   @override
   void dispose() {
+    _sheetController.removeListener(_onSheetChanged);
+    _sheetController.dispose();
     ref.read(searchQueryProvider.notifier).state = '';
     _searchController.dispose();
     _searchFocusNode.dispose();
@@ -150,8 +162,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
           GestureDetector(
             onTap: () {},
             child: DraggableScrollableSheet(
+              controller: _sheetController,
               initialChildSize: 0.95,
-              minChildSize: 0.75,
+              minChildSize: 0.5,
               maxChildSize: 0.98,
               snap: true,
               snapSizes: const [0.95],
@@ -184,13 +197,38 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                         const SizedBox(height: 12),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: _SearchBar(
-                            controller: _searchController,
-                            focusNode: _searchFocusNode,
-                            onChanged: (value) {
-                              ref.read(searchQueryProvider.notifier).state =
-                                  value;
-                            },
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: _SearchBar(
+                                  controller: _searchController,
+                                  focusNode: _searchFocusNode,
+                                  onChanged: (value) {
+                                    ref
+                                            .read(searchQueryProvider.notifier)
+                                            .state =
+                                        value;
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              GestureDetector(
+                                onTap: _dismissDrawer,
+                                child: Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Icon(
+                                    Icons.keyboard_arrow_down_rounded,
+                                    color: Colors.white.withValues(alpha: 0.7),
+                                    size: 28,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -247,19 +285,22 @@ class _SearchBar extends StatelessWidget {
       child: GlassCardLight(
         borderRadius: BorderRadius.circular(16),
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: TextField(
-          controller: controller,
-          focusNode: focusNode,
-          autofocus: true,
-          onChanged: onChanged,
-          style: AppTypography.bodyLarge.copyWith(color: AppColors.onSurface),
-          decoration: const InputDecoration(
-            hintText: 'Search apps',
-            prefixIcon: Icon(Icons.search, size: 20),
-            prefixIconConstraints: BoxConstraints(minWidth: 36),
-            border: InputBorder.none,
-            isDense: true,
-            contentPadding: EdgeInsets.symmetric(vertical: 12),
+        child: Material(
+          color: Colors.transparent,
+          child: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            autofocus: true,
+            onChanged: onChanged,
+            style: AppTypography.bodyLarge.copyWith(color: AppColors.onSurface),
+            decoration: const InputDecoration(
+              hintText: 'Search apps',
+              prefixIcon: Icon(Icons.search, size: 20),
+              prefixIconConstraints: BoxConstraints(minWidth: 36),
+              border: InputBorder.none,
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(vertical: 12),
+            ),
           ),
         ),
       ),
@@ -275,13 +316,27 @@ class _EmptyState extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
-        child: Text(
-          'Type to search apps',
-          style: AppTypography.bodyLarge.copyWith(
-            color: Colors.white.withValues(alpha: 0.5),
-            fontSize: 16,
-          ),
-          textAlign: TextAlign.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.search_rounded,
+              size: 48,
+              color: AppColors.onSurfaceVariant.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 16),
+            DefaultTextStyle(
+              style: AppTypography.bodyLarge.copyWith(
+                color: AppColors.onSurfaceVariant.withValues(alpha: 0.5),
+                fontSize: 16,
+                decoration: TextDecoration.none,
+              ),
+              child: const Text(
+                'Type to search apps',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -338,9 +393,29 @@ class _GroupedAppList extends StatelessWidget {
           ),
         ],
         if (grouped.isEmpty)
-          const SliverFillRemaining(
+          SliverFillRemaining(
             hasScrollBody: false,
-            child: Center(child: Text('No apps found')),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.app_blocking_outlined,
+                    size: 48,
+                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.3),
+                  ),
+                  const SizedBox(height: 16),
+                  DefaultTextStyle(
+                    style: AppTypography.bodyLarge.copyWith(
+                      color: AppColors.onSurfaceVariant.withValues(alpha: 0.5),
+                      fontSize: 16,
+                      decoration: TextDecoration.none,
+                    ),
+                    child: const Text('No apps found'),
+                  ),
+                ],
+              ),
+            ),
           ),
       ],
     );

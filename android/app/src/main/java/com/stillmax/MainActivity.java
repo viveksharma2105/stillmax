@@ -32,6 +32,7 @@ import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
 import android.os.Build;
+import android.os.Looper;
 import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
@@ -39,6 +40,13 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
+
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -332,22 +340,59 @@ public class MainActivity extends FlutterActivity {
                 return;
             }
 
-            LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-            if (locationManager == null) {
-                result.success(null);
-                return;
-            }
+            FusedLocationProviderClient fusedClient = LocationServices.getFusedLocationProviderClient(this);
+            
+            // First try to get last known location
+            fusedClient.getLastLocation().addOnSuccessListener(location -> {
+                if (location != null && isLocationFresh(location)) {
+                    Map<String, Object> payload = new HashMap<>();
+                    payload.put("latitude", location.getLatitude());
+                    payload.put("longitude", location.getLongitude());
+                    result.success(payload);
+                } else {
+                    // Request fresh location with high accuracy
+                    requestFreshLocation(fusedClient, hasFine, result);
+                }
+            }).addOnFailureListener(e -> {
+                // Fallback: request fresh location
+                requestFreshLocation(fusedClient, hasFine, result);
+            });
+        } catch (Exception e) {
+            result.success(null);
+        }
+    }
 
-            Location location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-            if (location == null) {
-                result.success(null);
-                return;
-            }
+    private boolean isLocationFresh(Location location) {
+        // Consider location fresh if less than 5 minutes old
+        long ageMs = System.currentTimeMillis() - location.getTime();
+        return ageMs < 5 * 60 * 1000;
+    }
 
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("latitude", location.getLatitude());
-            payload.put("longitude", location.getLongitude());
-            result.success(payload);
+    @SuppressLint("MissingPermission")
+    private void requestFreshLocation(FusedLocationProviderClient client, boolean hasFine, MethodChannel.Result result) {
+        try {
+            LocationRequest request = new LocationRequest.Builder(
+                    hasFine ? Priority.PRIORITY_HIGH_ACCURACY : Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                    1000
+            ).setMaxUpdates(1).setMaxUpdateDelayMillis(5000).build();
+
+            LocationCallback callback = new LocationCallback() {
+                @Override
+                public void onLocationResult(LocationResult locationResult) {
+                    client.removeLocationUpdates(this);
+                    if (locationResult != null && locationResult.getLastLocation() != null) {
+                        Location loc = locationResult.getLastLocation();
+                        Map<String, Object> payload = new HashMap<>();
+                        payload.put("latitude", loc.getLatitude());
+                        payload.put("longitude", loc.getLongitude());
+                        result.success(payload);
+                    } else {
+                        result.success(null);
+                    }
+                }
+            };
+
+            client.requestLocationUpdates(request, callback, Looper.getMainLooper());
         } catch (Exception e) {
             result.success(null);
         }

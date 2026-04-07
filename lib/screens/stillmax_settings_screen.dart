@@ -222,7 +222,6 @@ class _StillmaxSettingsScreenState
     final settings = ref.watch(settingsProvider).valueOrNull;
     final scale = settings?.fontScaleFactor ?? 1.0;
     final clockStyle = settings?.clockStyle ?? 'digital';
-    final leftWidgetSlotId = settings?.leftWidgetSlotId;
     final rightWidgetSlotId = settings?.rightWidgetSlotId;
     final iconTheme = ref.watch(iconThemeProvider);
     final iconColorFilter = IconThemeService.getColorFilterForTheme(iconTheme);
@@ -252,7 +251,7 @@ class _StillmaxSettingsScreenState
               // Favourites Manager
               _SectionTitle(title: 'Manage Favourites', scale: scale),
               Text(
-                'Up to 5 apps',
+                'Up to 8 apps',
                 style: AppTypography.bodySmall.copyWith(
                   color: AppColors.onSurfaceVariant,
                   fontSize: 12 * scale,
@@ -402,18 +401,6 @@ class _StillmaxSettingsScreenState
 
               // Header Widget Slots
               _SectionTitle(title: 'Header Widget Slots', scale: scale),
-              const SizedBox(height: 12),
-              _HeaderWidgetSlotCard(
-                title: 'Left Widget Slot',
-                widgetId: leftWidgetSlotId,
-                onAdd: () => unawaited(_addHeaderWidgetSlot(true)),
-                onRemove: leftWidgetSlotId == null
-                    ? null
-                    : () => unawaited(
-                        _removeHeaderWidgetSlot(leftWidgetSlotId, true),
-                      ),
-                scale: scale,
-              ),
               const SizedBox(height: 12),
               _HeaderWidgetSlotCard(
                 title: 'Right Widget Slot',

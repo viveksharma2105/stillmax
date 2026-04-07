@@ -177,26 +177,32 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                     duration: const Duration(milliseconds: 120),
                     curve: Curves.easeOut,
                     opacity: _showPopup && _activeLetter != null ? 1 : 0,
-                    child: Center(
-                      child: Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFF1C1C1E).withValues(alpha: 0.9),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.15),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Transform.translate(
+                        offset: const Offset(-50, 0),
+                        child: Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(
+                              0xFF1C1C1E,
+                            ).withValues(alpha: 0.9),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.15),
+                            ),
                           ),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          _activeLetter ?? '',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            color: _activeLetter == '★'
-                                ? AppColors.secondary
-                                : Colors.white,
+                          alignment: Alignment.center,
+                          child: Text(
+                            _activeLetter ?? '',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: _activeLetter == '★'
+                                  ? AppColors.secondary
+                                  : Colors.white,
+                            ),
                           ),
                         ),
                       ),

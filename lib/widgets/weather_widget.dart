@@ -277,12 +277,32 @@ String _weatherEmoji(String code) {
   return _weatherCodeToEmoji[code] ?? '⛅';
 }
 
-class WeatherWidget extends ConsumerWidget {
+final weatherRefreshingProvider = StateProvider<bool>((ref) => false);
+
+class WeatherWidget extends ConsumerStatefulWidget {
   const WeatherWidget({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WeatherWidget> createState() => _WeatherWidgetState();
+}
+
+class _WeatherWidgetState extends ConsumerState<WeatherWidget> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final weather = ref.watch(weatherInfoProvider).valueOrNull;
+    final isRefreshing = ref.watch(weatherRefreshingProvider);
+
+    // Listen for new data and reset refreshing state
+    ref.listen<AsyncValue<WeatherInfo?>>(weatherInfoProvider, (previous, next) {
+      if (next.hasValue && next.value != null && isRefreshing) {
+        ref.read(weatherRefreshingProvider.notifier).state = false;
+      }
+    });
 
     final emoji = weather == null
         ? '🌡️'
@@ -293,45 +313,60 @@ class WeatherWidget extends ConsumerWidget {
     final condition = weather?.shortCondition ?? 'LOADING';
     final cityName = weather?.cityName;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 20)),
-          const SizedBox(height: 2),
-          Text(
-            tempLabel,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
+    return GestureDetector(
+      onTap: () {
+        ref.read(weatherRefreshingProvider.notifier).state = true;
+        ref.invalidate(weatherInfoProvider);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            isRefreshing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Text(emoji, style: const TextStyle(fontSize: 20)),
+            const SizedBox(height: 2),
+            Text(
+              tempLabel,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
             ),
-          ),
-          if (cityName != null && cityName.isNotEmpty) ...[
+            if (cityName != null && cityName.isNotEmpty) ...[
+              const SizedBox(height: 1),
+              Text(
+                cityName,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.white.withValues(alpha: 0.6),
+                ),
+              ),
+            ],
             const SizedBox(height: 1),
             Text(
-              cityName,
+              condition,
               style: TextStyle(
-                fontSize: 11,
-                color: Colors.white.withValues(alpha: 0.6),
+                fontSize: 12,
+                color: Colors.white.withValues(alpha: 0.65),
               ),
             ),
           ],
-          const SizedBox(height: 1),
-          Text(
-            condition,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.white.withValues(alpha: 0.65),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

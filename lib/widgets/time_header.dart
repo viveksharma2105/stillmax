@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -233,75 +234,107 @@ class _TimeHeaderState extends ConsumerState<TimeHeader> {
       );
     }
 
-    final title = mediaInfo['title'] as String? ?? 'Unknown';
-    final artist = mediaInfo['artist'] as String? ?? 'Unknown Artist';
+    final title = mediaInfo['trackName'] as String? ?? 'Unknown';
+    final artist = mediaInfo['artistName'] as String? ?? 'Unknown Artist';
     final isPlaying = mediaInfo['isPlaying'] as bool? ?? false;
+    final albumArtBytes = mediaInfo['albumArt'] as Uint8List?;
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(14),
       ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.all(12),
+      child: Row(
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
+          // Album art (left side)
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              color: Colors.white.withValues(alpha: 0.1),
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            artist,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.7),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: albumArtBytes != null && albumArtBytes.isNotEmpty
+                  ? Image.memory(albumArtBytes, fit: BoxFit.cover)
+                  : const Icon(
+                      Icons.music_note,
+                      size: 36,
+                      color: Colors.white54,
+                    ),
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.skip_previous, color: Colors.white),
-                iconSize: 32,
-                onPressed: () {
-                  ref.read(appServiceProvider).sendMediaAction('previous');
-                },
-              ),
-              const SizedBox(width: 16),
-              IconButton(
-                icon: Icon(
-                  isPlaying
-                      ? Icons.pause_circle_filled
-                      : Icons.play_circle_filled,
-                  color: Colors.white,
+          const SizedBox(width: 12),
+          // Song info + controls (right side)
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                iconSize: 48,
-                onPressed: () {
-                  ref
-                      .read(appServiceProvider)
-                      .sendMediaAction(isPlaying ? 'pause' : 'play');
-                },
-              ),
-              const SizedBox(width: 16),
-              IconButton(
-                icon: const Icon(Icons.skip_next, color: Colors.white),
-                iconSize: 32,
-                onPressed: () {
-                  ref.read(appServiceProvider).sendMediaAction('next');
-                },
-              ),
-            ],
+                const SizedBox(height: 2),
+                Text(
+                  artist,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white.withValues(alpha: 0.7),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                // Playback controls row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.skip_previous,
+                        color: Colors.white,
+                      ),
+                      iconSize: 28,
+                      onPressed: () {
+                        ref
+                            .read(appServiceProvider)
+                            .sendMediaAction('previous');
+                      },
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        isPlaying
+                            ? Icons.pause_circle_filled
+                            : Icons.play_circle_filled,
+                        color: Colors.white,
+                      ),
+                      iconSize: 36,
+                      onPressed: () {
+                        ref
+                            .read(appServiceProvider)
+                            .sendMediaAction(isPlaying ? 'pause' : 'play');
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.skip_next, color: Colors.white),
+                      iconSize: 28,
+                      onPressed: () {
+                        ref.read(appServiceProvider).sendMediaAction('next');
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
