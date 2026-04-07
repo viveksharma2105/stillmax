@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
@@ -628,21 +629,22 @@ final blackBoxSettingsProvider = StreamProvider<BlackBoxSettingsDb?>((
 });
 
 final hiddenAppsProvider =
-    NotifierProvider<HiddenAppsNotifier, List<HiddenAppDb>>(
+    AsyncNotifierProvider<HiddenAppsNotifier, List<HiddenAppDb>>(
       HiddenAppsNotifier.new,
     );
 
-class HiddenAppsNotifier extends Notifier<List<HiddenAppDb>> {
+class HiddenAppsNotifier extends AsyncNotifier<List<HiddenAppDb>> {
   @override
-  List<HiddenAppDb> build() {
-    unawaited(_load());
-    return const <HiddenAppDb>[];
+  Future<List<HiddenAppDb>> build() async {
+    final isar = await ref.read(isarProvider.future);
+    final rows = await isar.hiddenAppDbs.where().findAll();
+    return rows;
   }
 
   Future<void> _load() async {
     final isar = await ref.read(isarProvider.future);
     final rows = await isar.hiddenAppDbs.where().findAll();
-    state = rows;
+    state = AsyncValue.data(rows);
   }
 
   Future<void> hideApp(AppInfo app) async {
@@ -708,11 +710,9 @@ class BlackBoxNotifier {
   }
 
   String _hashPin(String pin) {
-    // Simple hash using dart:convert - you may want to use crypto package for production
     final bytes = utf8.encode(pin);
-    return base64.encode(
-      bytes,
-    ); // Simple encoding, replace with SHA-256 in production
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 }
 
@@ -749,7 +749,10 @@ final displayAppsProvider = Provider<List<AppInfo>>((ref) {
   final apps = ref.watch(appListProvider).valueOrNull ?? const <AppInfo>[];
   final customNames =
       ref.watch(customAppNamesProvider).valueOrNull ?? const <String, String>{};
-  final hiddenApps = ref.watch(hiddenAppsProvider);
+  final hiddenAppsAsync = ref.watch(hiddenAppsProvider);
+
+  // Wait for hidden apps to load - return empty list during loading to prevent flicker
+  final hiddenApps = hiddenAppsAsync.valueOrNull ?? const <HiddenAppDb>[];
   final hiddenPackages = hiddenApps.map((h) => h.packageName).toSet();
 
   return apps

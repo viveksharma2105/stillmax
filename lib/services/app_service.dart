@@ -47,10 +47,23 @@ class AppService {
   }
 
   Future<bool> launchAppHidden(String packageName) async {
-    final bool? result = await _channel.invokeMethod('launchAppHidden', {
-      'packageName': packageName,
-    });
-    return result ?? false;
+    if (packageName.isEmpty) {
+      debugPrint('launchAppHidden: empty package name');
+      return false;
+    }
+
+    try {
+      final result = await _channel.invokeMethod<bool>('launchAppHidden', {
+        'packageName': packageName,
+      });
+      return result ?? false;
+    } on PlatformException catch (e) {
+      debugPrint('launchAppHidden failed: ${e.message}');
+      return false;
+    } catch (e) {
+      debugPrint('launchAppHidden error: $e');
+      return false;
+    }
   }
 
   Future<bool> setWallpaper(String imagePath) async {

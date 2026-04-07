@@ -190,35 +190,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           children: [
                             SizedBox(height: favoritesSpacing),
 
-                            // Section header
+                            // Section header with crossfade transition
                             Padding(
                               padding: const EdgeInsets.only(
                                 left: 16,
                                 top: 4,
                                 bottom: 2,
                               ),
-                              child: Row(
-                                children: [
-                                  if (_selectedLetter == '★') ...[
-                                    Icon(
-                                      Icons.star,
-                                      color: AppColors.secondary,
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 6),
-                                  ],
-                                  Text(
-                                    sectionTitle,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.35,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 200),
+                                child: Row(
+                                  key: ValueKey(sectionTitle),
+                                  children: [
+                                    if (_selectedLetter == '★') ...[
+                                      Icon(
+                                        Icons.star,
+                                        color: AppColors.secondary,
+                                        size: 16,
                                       ),
-                                      letterSpacing: 1.0,
+                                      const SizedBox(width: 6),
+                                    ],
+                                    Text(
+                                      sectionTitle,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white.withValues(
+                                          alpha: 0.35,
+                                        ),
+                                        letterSpacing: 1.0,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
 
@@ -283,34 +287,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                         ),
 
-                        // Layout adjustment mode overlay
+                        // Layout adjustment mode overlay with fade transition
                         if (layoutAdjustMode)
                           Positioned.fill(
-                            child: _LayoutAdjustmentOverlay(
-                              currentClockSpacing: clockSpacing,
-                              currentFavoritesSpacing: favoritesSpacing,
-                              currentSidebarSpacing: sidebarSpacing,
-                              onClockSpacingChanged: (newSpacing) async {
-                                await ref
-                                    .read(settingsNotifierProvider)
-                                    .updateClockSpacing(newSpacing);
-                              },
-                              onFavoritesSpacingChanged: (newSpacing) async {
-                                await ref
-                                    .read(settingsNotifierProvider)
-                                    .updateFavoritesSpacing(newSpacing);
-                              },
-                              onSidebarSpacingChanged: (newSpacing) async {
-                                await ref
-                                    .read(settingsNotifierProvider)
-                                    .updateSidebarSpacing(newSpacing);
-                              },
-                              onDone: () {
-                                ref
-                                        .read(layoutAdjustModeProvider.notifier)
-                                        .state =
-                                    false;
-                              },
+                            child: AnimatedOpacity(
+                              opacity: layoutAdjustMode ? 1.0 : 0.0,
+                              duration: const Duration(milliseconds: 200),
+                              child: IgnorePointer(
+                                ignoring: !layoutAdjustMode,
+                                child: _LayoutAdjustmentOverlay(
+                                  currentClockSpacing: clockSpacing,
+                                  currentFavoritesSpacing: favoritesSpacing,
+                                  currentSidebarSpacing: sidebarSpacing,
+                                  onClockSpacingChanged: (newSpacing) async {
+                                    await ref
+                                        .read(settingsNotifierProvider)
+                                        .updateClockSpacing(newSpacing);
+                                  },
+                                  onFavoritesSpacingChanged:
+                                      (newSpacing) async {
+                                        await ref
+                                            .read(settingsNotifierProvider)
+                                            .updateFavoritesSpacing(newSpacing);
+                                      },
+                                  onSidebarSpacingChanged: (newSpacing) async {
+                                    await ref
+                                        .read(settingsNotifierProvider)
+                                        .updateSidebarSpacing(newSpacing);
+                                  },
+                                  onDone: () {
+                                    ref
+                                            .read(
+                                              layoutAdjustModeProvider.notifier,
+                                            )
+                                            .state =
+                                        false;
+                                  },
+                                ),
+                              ),
                             ),
                           ),
                       ],
@@ -320,12 +334,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
           ),
-          if (_showAppDrawer)
-            AppDrawer(
-              onClose: _closeAppDrawer,
-              initialLetter: _drawerInitialLetter,
-              showAppsInitially: false,
-            ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            transitionBuilder: (child, animation) {
+              return SlideTransition(
+                position:
+                    Tween<Offset>(
+                      begin: const Offset(0, 1),
+                      end: Offset.zero,
+                    ).animate(
+                      CurvedAnimation(parent: animation, curve: Curves.easeOut),
+                    ),
+                child: child,
+              );
+            },
+            child: _showAppDrawer
+                ? AppDrawer(
+                    key: const ValueKey('drawer'),
+                    onClose: _closeAppDrawer,
+                    initialLetter: _drawerInitialLetter,
+                    showAppsInitially: false,
+                  )
+                : const SizedBox.shrink(key: ValueKey('empty')),
+          ),
         ],
       ),
     );

@@ -54,6 +54,7 @@ dependencies:
   # Media and intents
   image_picker: ^1.1.2
   android_intent_plus: ^5.1.0
+  crypto: ^3.0.7
 
 dev_dependencies:
   flutter_test:

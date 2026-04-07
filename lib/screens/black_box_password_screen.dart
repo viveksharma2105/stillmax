@@ -18,13 +18,47 @@ class BlackBoxPasswordScreen extends ConsumerStatefulWidget {
       _BlackBoxPasswordScreenState();
 }
 
-class _BlackBoxPasswordScreenState
-    extends ConsumerState<BlackBoxPasswordScreen> {
+class _BlackBoxPasswordScreenState extends ConsumerState<BlackBoxPasswordScreen>
+    with TickerProviderStateMixin {
   String _pin = '';
   String _confirmPin = '';
   bool _isConfirming = false;
   String _errorMessage = '';
   bool _showSuccessMessage = false;
+
+  late AnimationController _shakeController;
+  late Animation<double> _shakeAnimation;
+  late AnimationController _successController;
+  late Animation<double> _successAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _shakeAnimation = Tween(
+      begin: 0.0,
+      end: 10.0,
+    ).chain(CurveTween(curve: Curves.elasticIn)).animate(_shakeController);
+
+    _successController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _successAnimation = Tween(
+      begin: 1.0,
+      end: 1.2,
+    ).chain(CurveTween(curve: Curves.easeOut)).animate(_successController);
+  }
+
+  @override
+  void dispose() {
+    _shakeController.dispose();
+    _successController.dispose();
+    super.dispose();
+  }
 
   void _onNumberTap(String number) {
     HapticFeedback.lightImpact();
@@ -62,17 +96,30 @@ class _BlackBoxPasswordScreenState
           });
         } else {
           if (_pin == _confirmPin) {
-            await notifier.setPassword(_pin);
-            if (!mounted) return;
-            setState(() => _showSuccessMessage = true);
-            await Future.delayed(const Duration(milliseconds: 800));
-            if (!mounted) return;
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (_) => const BlackBoxVaultScreen(showWelcome: true),
-              ),
-            );
+            try {
+              await notifier.setPassword(_pin);
+              if (!mounted) return;
+              HapticFeedback.mediumImpact();
+              setState(() => _showSuccessMessage = true);
+              _successController.forward(from: 0);
+              await Future.delayed(const Duration(milliseconds: 800));
+              if (!mounted) return;
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (_) => const BlackBoxVaultScreen(showWelcome: true),
+                ),
+              );
+            } catch (e) {
+              if (!mounted) return;
+              HapticFeedback.heavyImpact();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Failed to save PIN')),
+              );
+              return;
+            }
           } else {
+            HapticFeedback.heavyImpact();
+            _shakeController.forward(from: 0);
             setState(() {
               _errorMessage = 'PINs do not match. Try again.';
               _pin = '';
@@ -87,10 +134,14 @@ class _BlackBoxPasswordScreenState
         final valid = await notifier.verifyPassword(_pin);
         if (!mounted) return;
         if (valid) {
+          HapticFeedback.mediumImpact();
+          _successController.forward(from: 0);
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => const BlackBoxVaultScreen()),
           );
         } else {
+          HapticFeedback.heavyImpact();
+          _shakeController.forward(from: 0);
           setState(() {
             _errorMessage = 'Incorrect PIN';
             _pin = '';
@@ -104,11 +155,14 @@ class _BlackBoxPasswordScreenState
           final valid = await notifier.verifyPassword(_pin);
           if (!mounted) return;
           if (valid) {
+            HapticFeedback.mediumImpact();
             setState(() {
               _pin = '';
               _isConfirming = true;
             });
           } else {
+            HapticFeedback.heavyImpact();
+            _shakeController.forward(from: 0);
             setState(() {
               _errorMessage = 'Incorrect current PIN';
               _pin = '';
@@ -121,13 +175,25 @@ class _BlackBoxPasswordScreenState
           });
         } else {
           if (_pin == _confirmPin) {
-            await notifier.setPassword(_pin);
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('PIN changed successfully')),
-            );
-            Navigator.of(context).pop();
+            try {
+              await notifier.setPassword(_pin);
+              if (!mounted) return;
+              HapticFeedback.mediumImpact();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('PIN changed successfully')),
+              );
+              Navigator.of(context).pop();
+            } catch (e) {
+              if (!mounted) return;
+              HapticFeedback.heavyImpact();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Failed to save PIN')),
+              );
+              return;
+            }
           } else {
+            HapticFeedback.heavyImpact();
+            _shakeController.forward(from: 0);
             setState(() {
               _errorMessage = 'PINs do not match. Try again.';
               _pin = '';
@@ -184,18 +250,30 @@ class _BlackBoxPasswordScreenState
           children: [
             const SizedBox(height: 40),
             // Lock icon
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.secondary.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                _showSuccessMessage ? Icons.check : Icons.lock_outline,
-                size: 40,
-                color: AppColors.secondary,
-              ),
+            AnimatedBuilder(
+              animation: _successAnimation,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: _showSuccessMessage ? _successAnimation.value : 1.0,
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: _showSuccessMessage
+                          ? Colors.green.withValues(alpha: 0.15)
+                          : AppColors.secondary.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _showSuccessMessage ? Icons.check : Icons.lock_outline,
+                      size: 40,
+                      color: _showSuccessMessage
+                          ? Colors.green
+                          : AppColors.secondary,
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 24),
             // Title
@@ -222,27 +300,37 @@ class _BlackBoxPasswordScreenState
             ),
             const SizedBox(height: 40),
             // PIN dots
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(6, (index) {
-                final filled = index < _pin.length;
-                return Container(
-                  width: 16,
-                  height: 16,
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: filled
-                        ? AppColors.secondary
-                        : Colors.white.withValues(alpha: 0.2),
-                    border: filled
-                        ? null
-                        : Border.all(
-                            color: Colors.white.withValues(alpha: 0.3),
-                          ),
+            AnimatedBuilder(
+              animation: _shakeAnimation,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(_shakeAnimation.value, 0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(6, (index) {
+                      final filled = index < _pin.length;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        curve: Curves.easeOut,
+                        width: 16,
+                        height: 16,
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: filled
+                              ? AppColors.secondary
+                              : Colors.white.withValues(alpha: 0.2),
+                          border: filled
+                              ? null
+                              : Border.all(
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                ),
+                        ),
+                      );
+                    }),
                   ),
                 );
-              }),
+              },
             ),
             // Error message
             if (_errorMessage.isNotEmpty) ...[
@@ -298,8 +386,9 @@ class _BlackBoxPasswordScreenState
   }
 
   Widget _buildNumberButton(String number) {
-    return GestureDetector(
+    return InkWell(
       onTap: () => _onNumberTap(number),
+      borderRadius: BorderRadius.circular(36),
       child: Container(
         width: 72,
         height: 72,
@@ -322,8 +411,9 @@ class _BlackBoxPasswordScreenState
   }
 
   Widget _buildBackspaceButton() {
-    return GestureDetector(
+    return InkWell(
       onTap: _onBackspace,
+      borderRadius: BorderRadius.circular(36),
       child: Container(
         width: 72,
         height: 72,

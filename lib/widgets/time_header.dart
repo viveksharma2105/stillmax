@@ -45,7 +45,7 @@ class _TimeHeaderState extends ConsumerState<TimeHeader> {
   late final PageController _pageController;
   int _currentPage = 1;
   int _mediaCardTapCount = 0;
-  DateTime? _lastMediaCardTap;
+  Timer? _tapResetTimer;
 
   @override
   void initState() {
@@ -55,6 +55,7 @@ class _TimeHeaderState extends ConsumerState<TimeHeader> {
 
   @override
   void dispose() {
+    _tapResetTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -141,33 +142,36 @@ class _TimeHeaderState extends ConsumerState<TimeHeader> {
   }
 
   void _onMediaCardTap() {
-    final now = DateTime.now();
-    if (_lastMediaCardTap != null &&
-        now.difference(_lastMediaCardTap!).inMilliseconds < 500) {
-      _mediaCardTapCount++;
-      if (_mediaCardTapCount >= 4) {
-        _mediaCardTapCount = 0;
-        _lastMediaCardTap = null;
-        _openBlackBox();
-      }
+    _tapResetTimer?.cancel();
+    _mediaCardTapCount++;
+
+    if (_mediaCardTapCount >= 4) {
+      _mediaCardTapCount = 0;
+      _openBlackBox();
     } else {
-      _mediaCardTapCount = 1;
+      _tapResetTimer = Timer(const Duration(seconds: 2), () {
+        _mediaCardTapCount = 0;
+      });
     }
-    _lastMediaCardTap = now;
   }
 
   Future<void> _openBlackBox() async {
-    final notifier = ref.read(blackBoxNotifierProvider);
-    final isPasswordSet = await notifier.isPasswordSet();
-    if (!mounted) return;
+    try {
+      final notifier = ref.read(blackBoxNotifierProvider);
+      final isPasswordSet = await notifier.isPasswordSet();
+      if (!mounted) return;
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => BlackBoxPasswordScreen(
-          mode: isPasswordSet ? BlackBoxMode.verify : BlackBoxMode.setup,
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => BlackBoxPasswordScreen(
+            mode: isPasswordSet ? BlackBoxMode.verify : BlackBoxMode.setup,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      // Silently handle errors - likely from password check failing
+      debugPrint('Error opening Black Box: $e');
+    }
   }
 
   Widget _buildSlot({required int? widgetId, required bool leftSlot}) {
@@ -395,7 +399,14 @@ class _TimeHeaderState extends ConsumerState<TimeHeader> {
             height: 200,
             child: PageView(
               controller: _pageController,
-              onPageChanged: (index) => setState(() => _currentPage = index),
+              onPageChanged: (index) {
+                setState(() => _currentPage = index);
+                // Reset tap count when navigating away from media player page
+                if (index != 0) {
+                  _tapResetTimer?.cancel();
+                  _mediaCardTapCount = 0;
+                }
+              },
               children: [
                 GestureDetector(
                   onTap: _onMediaCardTap,

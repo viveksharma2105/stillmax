@@ -1046,7 +1046,10 @@ public class MainActivity extends FlutterActivity {
             if (cameraManager == null) {
                 cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
                 if (cameraManager != null) {
-                    cameraId = cameraManager.getCameraIdList()[0];
+                    String[] cameraIds = cameraManager.getCameraIdList();
+                    if (cameraIds != null && cameraIds.length > 0) {
+                        cameraId = cameraIds[0];
+                    }
                 }
             }
             if (cameraManager != null && cameraId != null) {
@@ -1058,6 +1061,10 @@ public class MainActivity extends FlutterActivity {
             }
         } catch (CameraAccessException e) {
             result.error("FLASHLIGHT_ERROR", "Failed to toggle flashlight: " + e.getMessage(), null);
+        } catch (SecurityException e) {
+            result.error("FLASHLIGHT_ERROR", "Security exception: " + e.getMessage(), null);
+        } catch (Exception e) {
+            result.error("FLASHLIGHT_ERROR", "Unexpected error: " + e.getMessage(), null);
         }
     }
 

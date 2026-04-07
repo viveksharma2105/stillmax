@@ -19,11 +19,18 @@ class BlackBoxVaultScreen extends ConsumerStatefulWidget {
 }
 
 class _BlackBoxVaultScreenState extends ConsumerState<BlackBoxVaultScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
+  late final AnimationController _gridAnimationController;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _gridAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _gridAnimationController.forward();
     if (widget.showWelcome) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _showWelcomeInfo();
@@ -33,15 +40,18 @@ class _BlackBoxVaultScreenState extends ConsumerState<BlackBoxVaultScreen>
 
   @override
   void dispose() {
+    _gridAnimationController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Close vault when app goes to background (power button, home button)
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
+    // Close vault only when app truly goes to background
+    // (hidden = user switched apps, detached = app is being terminated)
+    // Don't close on inactive/paused as these fire for permission dialogs, app switcher, etc.
+    if (state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
       if (mounted) {
         Navigator.of(context).popUntil((route) => route.isFirst);
       }
@@ -52,50 +62,66 @@ class _BlackBoxVaultScreenState extends ConsumerState<BlackBoxVaultScreen>
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.glassDark,
-        title: Row(
-          children: [
-            Icon(Icons.lock_outline, color: AppColors.secondary),
-            const SizedBox(width: 12),
-            const Text('Black Box Ready'),
-          ],
+      builder: (context) => FadeTransition(
+        opacity: CurvedAnimation(
+          parent: ModalRoute.of(context)!.animation!,
+          curve: Curves.easeOut,
         ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Your hidden apps vault is set up!',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-            SizedBox(height: 16),
-            Text('To access your hidden apps:'),
-            SizedBox(height: 8),
-            Text('• Tap the media player card 4 times quickly'),
-            SizedBox(height: 4),
-            Text('• The media player is on the left page of the clock header'),
-            SizedBox(height: 16),
-            Text(
-              'Hidden apps won\'t appear anywhere in the launcher - not in search, favorites, or the app list.',
-              style: TextStyle(fontSize: 13),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Got it'),
+        child: AlertDialog(
+          backgroundColor: AppColors.glassDark,
+          title: Row(
+            children: [
+              Icon(Icons.lock_outline, color: AppColors.secondary),
+              const SizedBox(width: 12),
+              const Text('Black Box Ready'),
+            ],
           ),
-        ],
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Your hidden apps vault is set up!',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              SizedBox(height: 16),
+              Text('To access your hidden apps:'),
+              SizedBox(height: 8),
+              Text('• Tap the media player card 4 times quickly'),
+              SizedBox(height: 4),
+              Text(
+                '• The media player is on the left page of the clock header',
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Hidden apps won\'t appear anywhere in the launcher - not in search, favorites, or the app list.',
+                style: TextStyle(fontSize: 13),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Got it'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Future<void> _launchHiddenApp(HiddenAppDb app) async {
-    final appService = ref.read(appServiceProvider);
-    // Launch with FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS so hidden apps don't appear in recents
-    await appService.launchAppHidden(app.packageName);
+    try {
+      final appService = ref.read(appServiceProvider);
+      // Launch with FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS so hidden apps don't appear in recents
+      await appService.launchAppHidden(app.packageName);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to launch ${app.appName}')),
+        );
+      }
+    }
   }
 
   Future<void> _unhideApp(HiddenAppDb app) async {
@@ -123,7 +149,7 @@ class _BlackBoxVaultScreenState extends ConsumerState<BlackBoxVaultScreen>
 
   Future<void> _addAppsToVault() async {
     final allApps = ref.read(appListProvider).valueOrNull ?? [];
-    final hiddenApps = ref.read(hiddenAppsProvider);
+    final hiddenApps = ref.read(hiddenAppsProvider).valueOrNull ?? [];
     final hiddenPackages = hiddenApps.map((h) => h.packageName).toSet();
 
     // Filter to show only visible apps (not already hidden)
@@ -148,7 +174,7 @@ class _BlackBoxVaultScreenState extends ConsumerState<BlackBoxVaultScreen>
 
   @override
   Widget build(BuildContext context) {
-    final hiddenApps = ref.watch(hiddenAppsProvider);
+    final hiddenAppsAsync = ref.watch(hiddenAppsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -177,9 +203,13 @@ class _BlackBoxVaultScreenState extends ConsumerState<BlackBoxVaultScreen>
         ],
       ),
       body: SafeArea(
-        child: hiddenApps.isEmpty
-            ? _buildEmptyState()
-            : _buildAppGrid(hiddenApps),
+        child: hiddenAppsAsync.when(
+          data: (hiddenApps) => hiddenApps.isEmpty
+              ? _buildEmptyState()
+              : _buildAppGrid(hiddenApps),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => Center(child: Text('Error: $error')),
+        ),
       ),
     );
   }
@@ -233,12 +263,50 @@ class _BlackBoxVaultScreenState extends ConsumerState<BlackBoxVaultScreen>
       itemCount: apps.length,
       itemBuilder: (context, index) {
         final app = apps[index];
-        return _HiddenAppTile(
-          app: app,
-          onTap: () => unawaited(_launchHiddenApp(app)),
-          onLongPress: () => unawaited(_unhideApp(app)),
+        // Staggered animation delay based on index
+        final delay = index * 50; // 50ms between each tile
+        return _AnimatedAppTile(
+          delay: delay,
+          controller: _gridAnimationController,
+          child: _HiddenAppTile(
+            app: app,
+            onTap: () => unawaited(_launchHiddenApp(app)),
+            onLongPress: () => unawaited(_unhideApp(app)),
+          ),
         );
       },
+    );
+  }
+}
+
+class _AnimatedAppTile extends StatelessWidget {
+  const _AnimatedAppTile({
+    required this.delay,
+    required this.controller,
+    required this.child,
+  });
+
+  final int delay;
+  final AnimationController controller;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final animation = CurvedAnimation(
+      parent: controller,
+      curve: Interval(
+        (delay / 600).clamp(0.0, 1.0),
+        ((delay + 300) / 600).clamp(0.0, 1.0),
+        curve: Curves.easeOutCubic,
+      ),
+    );
+
+    return FadeTransition(
+      opacity: animation,
+      child: ScaleTransition(
+        scale: Tween<double>(begin: 0.8, end: 1.0).animate(animation),
+        child: child,
+      ),
     );
   }
 }
@@ -256,9 +324,16 @@ class _HiddenAppTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      onLongPress: onLongPress,
+    return InkWell(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      onLongPress: () {
+        HapticFeedback.mediumImpact();
+        onLongPress();
+      },
+      borderRadius: BorderRadius.circular(12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -392,7 +467,10 @@ class _AppPickerSheetState extends ConsumerState<_AppPickerSheet> {
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: app.icon.isNotEmpty
-                        ? Image.memory(app.icon, fit: BoxFit.cover)
+                        ? Image.memory(
+                            Uint8List.fromList(app.icon),
+                            fit: BoxFit.cover,
+                          )
                         : const Icon(Icons.apps),
                   ),
                   title: Text(app.name),

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
 
@@ -66,6 +67,10 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
     if (_activeLetter == letter && _showPopup) {
       return;
     }
+    // Add haptic feedback when letter changes
+    if (_activeLetter != letter) {
+      HapticFeedback.selectionClick();
+    }
     _version++;
     setState(() {
       _activeLetter = letter;
@@ -118,10 +123,10 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                       });
                     },
                     onVerticalDragUpdate: (details) {
-                      _selectLetter(details.localPosition, itemHeight);
                       setState(() {
                         _touchY = details.localPosition.dy;
                       });
+                      _selectLetter(details.localPosition, itemHeight);
                     },
                     onVerticalDragEnd: (_) {
                       setState(() {
@@ -192,7 +197,9 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                 ),
                 // Letter popup bubble - moves with touch
                 if (_showPopup && _activeLetter != null && _touchY != null)
-                  Positioned(
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 50),
+                    curve: Curves.easeOut,
                     left: -90, // Curve outward from sidebar
                     top: (_touchY! - 22).clamp(
                       0.0,
@@ -200,30 +207,33 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                     ), // Center bubble on touch, keep in bounds
                     child: IgnorePointer(
                       child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 120),
-                        curve: Curves.easeOut,
-                        opacity: 1.0,
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: const Color(
-                              0xFF1C1C1E,
-                            ).withValues(alpha: 0.9),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.15),
+                        duration: const Duration(milliseconds: 150),
+                        opacity: _showPopup ? 1.0 : 0.0,
+                        child: AnimatedScale(
+                          duration: const Duration(milliseconds: 150),
+                          scale: _showPopup ? 1.0 : 0.8,
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: const Color(
+                                0xFF1C1C1E,
+                              ).withValues(alpha: 0.9),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.15),
+                              ),
                             ),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            _activeLetter ?? '',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: _activeLetter == '★'
-                                  ? AppColors.secondary
-                                  : Colors.white,
+                            alignment: Alignment.center,
+                            child: Text(
+                              _activeLetter ?? '',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: _activeLetter == '★'
+                                    ? AppColors.secondary
+                                    : Colors.white,
+                              ),
                             ),
                           ),
                         ),
