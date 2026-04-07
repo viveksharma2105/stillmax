@@ -2054,13 +2054,18 @@ const SettingsDbSchema = CollectionSchema(
       name: r'showRecents',
       type: IsarType.bool,
     ),
-    r'sidebarSpacing': PropertySchema(
+    r'sidebarHorizontalOffset': PropertySchema(
       id: 18,
+      name: r'sidebarHorizontalOffset',
+      type: IsarType.double,
+    ),
+    r'sidebarSpacing': PropertySchema(
+      id: 19,
       name: r'sidebarSpacing',
       type: IsarType.double,
     ),
     r'swipeLeftAction': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'swipeLeftAction',
       type: IsarType.long,
     )
@@ -2113,8 +2118,9 @@ void _settingsDbSerialize(
   writer.writeBool(offsets[15], object.showDockLabels);
   writer.writeBool(offsets[16], object.showLabels);
   writer.writeBool(offsets[17], object.showRecents);
-  writer.writeDouble(offsets[18], object.sidebarSpacing);
-  writer.writeLong(offsets[19], object.swipeLeftAction);
+  writer.writeDouble(offsets[18], object.sidebarHorizontalOffset);
+  writer.writeDouble(offsets[19], object.sidebarSpacing);
+  writer.writeLong(offsets[20], object.swipeLeftAction);
 }
 
 SettingsDb _settingsDbDeserialize(
@@ -2143,8 +2149,9 @@ SettingsDb _settingsDbDeserialize(
   object.showDockLabels = reader.readBool(offsets[15]);
   object.showLabels = reader.readBool(offsets[16]);
   object.showRecents = reader.readBool(offsets[17]);
-  object.sidebarSpacing = reader.readDouble(offsets[18]);
-  object.swipeLeftAction = reader.readLong(offsets[19]);
+  object.sidebarHorizontalOffset = reader.readDouble(offsets[18]);
+  object.sidebarSpacing = reader.readDouble(offsets[19]);
+  object.swipeLeftAction = reader.readLong(offsets[20]);
   return object;
 }
 
@@ -2194,6 +2201,8 @@ P _settingsDbDeserializeProp<P>(
     case 18:
       return (reader.readDouble(offset)) as P;
     case 19:
+      return (reader.readDouble(offset)) as P;
+    case 20:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -3306,6 +3315,72 @@ extension SettingsDbQueryFilter
   }
 
   QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      sidebarHorizontalOffsetEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'sidebarHorizontalOffset',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      sidebarHorizontalOffsetGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'sidebarHorizontalOffset',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      sidebarHorizontalOffsetLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'sidebarHorizontalOffset',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      sidebarHorizontalOffsetBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'sidebarHorizontalOffset',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
       sidebarSpacingEqualTo(
     double value, {
     double epsilon = Query.epsilon,
@@ -3659,6 +3734,20 @@ extension SettingsDbQuerySortBy
     });
   }
 
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy>
+      sortBySidebarHorizontalOffset() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sidebarHorizontalOffset', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy>
+      sortBySidebarHorizontalOffsetDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sidebarHorizontalOffset', Sort.desc);
+    });
+  }
+
   QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> sortBySidebarSpacing() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sidebarSpacing', Sort.asc);
@@ -3923,6 +4012,20 @@ extension SettingsDbQuerySortThenBy
     });
   }
 
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy>
+      thenBySidebarHorizontalOffset() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sidebarHorizontalOffset', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy>
+      thenBySidebarHorizontalOffsetDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sidebarHorizontalOffset', Sort.desc);
+    });
+  }
+
   QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> thenBySidebarSpacing() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sidebarSpacing', Sort.asc);
@@ -4062,6 +4165,13 @@ extension SettingsDbQueryWhereDistinct
     });
   }
 
+  QueryBuilder<SettingsDb, SettingsDb, QDistinct>
+      distinctBySidebarHorizontalOffset() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'sidebarHorizontalOffset');
+    });
+  }
+
   QueryBuilder<SettingsDb, SettingsDb, QDistinct> distinctBySidebarSpacing() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'sidebarSpacing');
@@ -4189,6 +4299,13 @@ extension SettingsDbQueryProperty
   QueryBuilder<SettingsDb, bool, QQueryOperations> showRecentsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'showRecents');
+    });
+  }
+
+  QueryBuilder<SettingsDb, double, QQueryOperations>
+      sidebarHorizontalOffsetProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'sidebarHorizontalOffset');
     });
   }
 

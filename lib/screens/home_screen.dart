@@ -28,6 +28,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _showAppDrawer = false;
   String? _drawerInitialLetter;
   String _selectedLetter = '★';
+  StreamSubscription<void>? _homeSubscription;
 
   @override
   void initState() {
@@ -43,11 +44,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         systemNavigationBarIconBrightness: Brightness.light,
       ),
     );
+
+    // Subscribe to home button events
+    final appService = ref.read(appServiceProvider);
+    _homeSubscription = appService.onHomePressed.listen((_) {
+      if (mounted && _showAppDrawer) {
+        _closeAppDrawer();
+      }
+    });
   }
 
   @override
   void dispose() {
     _scrollIdleTimer?.cancel();
+    _homeSubscription?.cancel();
     _appsScrollController
       ..removeListener(_onAppsScroll)
       ..dispose();
@@ -107,6 +117,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       100.0,
     );
     final sidebarSpacing = (settings?.sidebarSpacing ?? 16.0).clamp(0.0, 100.0);
+    final sidebarHorizontalOffset = (settings?.sidebarHorizontalOffset ?? 16.0)
+        .clamp(0.0, 100.0);
     final layoutAdjustMode = ref.watch(layoutAdjustModeProvider);
 
     final navBarHeight = MediaQuery.of(context).padding.bottom;
@@ -275,7 +287,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                         // Alphabet sidebar - stays pinned
                         Positioned(
-                          right: 16,
+                          right: sidebarHorizontalOffset,
                           top: sidebarSpacing,
                           bottom: navBarHeight + 80,
                           child: AlphabetSidebar(
@@ -299,6 +311,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   currentClockSpacing: clockSpacing,
                                   currentFavoritesSpacing: favoritesSpacing,
                                   currentSidebarSpacing: sidebarSpacing,
+                                  currentSidebarHorizontalOffset:
+                                      sidebarHorizontalOffset,
                                   onClockSpacingChanged: (newSpacing) async {
                                     await ref
                                         .read(settingsNotifierProvider)
@@ -315,6 +329,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         .read(settingsNotifierProvider)
                                         .updateSidebarSpacing(newSpacing);
                                   },
+                                  onSidebarHorizontalOffsetChanged:
+                                      (newOffset) async {
+                                        await ref
+                                            .read(settingsNotifierProvider)
+                                            .updateSidebarHorizontalOffset(
+                                              newOffset,
+                                            );
+                                      },
                                   onDone: () {
                                     ref
                                             .read(
@@ -368,18 +390,22 @@ class _LayoutAdjustmentOverlay extends StatefulWidget {
     required this.currentClockSpacing,
     required this.currentFavoritesSpacing,
     required this.currentSidebarSpacing,
+    required this.currentSidebarHorizontalOffset,
     required this.onClockSpacingChanged,
     required this.onFavoritesSpacingChanged,
     required this.onSidebarSpacingChanged,
+    required this.onSidebarHorizontalOffsetChanged,
     required this.onDone,
   });
 
   final double currentClockSpacing;
   final double currentFavoritesSpacing;
   final double currentSidebarSpacing;
+  final double currentSidebarHorizontalOffset;
   final ValueChanged<double> onClockSpacingChanged;
   final ValueChanged<double> onFavoritesSpacingChanged;
   final ValueChanged<double> onSidebarSpacingChanged;
+  final ValueChanged<double> onSidebarHorizontalOffsetChanged;
   final VoidCallback onDone;
 
   @override
@@ -391,6 +417,7 @@ class _LayoutAdjustmentOverlayState extends State<_LayoutAdjustmentOverlay> {
   late double _tempClockSpacing;
   late double _tempFavoritesSpacing;
   late double _tempSidebarSpacing;
+  late double _tempSidebarHorizontalOffset;
   String _selectedSpacingType = 'time'; // 'time', 'favorites', 'sidebar'
   Timer? _adjustTimer;
 
@@ -400,6 +427,7 @@ class _LayoutAdjustmentOverlayState extends State<_LayoutAdjustmentOverlay> {
     _tempClockSpacing = widget.currentClockSpacing;
     _tempFavoritesSpacing = widget.currentFavoritesSpacing;
     _tempSidebarSpacing = widget.currentSidebarSpacing;
+    _tempSidebarHorizontalOffset = widget.currentSidebarHorizontalOffset;
   }
 
   void _startContinuousAdjust(double delta) {
@@ -428,6 +456,8 @@ class _LayoutAdjustmentOverlayState extends State<_LayoutAdjustmentOverlay> {
         return _tempFavoritesSpacing;
       case 'sidebar':
         return _tempSidebarSpacing;
+      case 'sidebar-horizontal':
+        return _tempSidebarHorizontalOffset;
       default:
         return _tempClockSpacing;
     }
@@ -450,6 +480,11 @@ class _LayoutAdjustmentOverlayState extends State<_LayoutAdjustmentOverlay> {
         case 'sidebar':
           _tempSidebarSpacing = (_tempSidebarSpacing + delta).clamp(0.0, 100.0);
           widget.onSidebarSpacingChanged(_tempSidebarSpacing);
+          break;
+        case 'sidebar-horizontal':
+          _tempSidebarHorizontalOffset = (_tempSidebarHorizontalOffset + delta)
+              .clamp(0.0, 100.0);
+          widget.onSidebarHorizontalOffsetChanged(_tempSidebarHorizontalOffset);
           break;
       }
     });
@@ -573,6 +608,116 @@ class _LayoutAdjustmentOverlayState extends State<_LayoutAdjustmentOverlay> {
                   ),
                 ),
               ),
+
+              // Show left/right arrows only when sidebar is selected
+              if (_selectedSpacingType == 'sidebar') ...[
+                const SizedBox(height: 24),
+                // Horizontal adjustment label
+                Text(
+                  'Horizontal Position',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Left and Right arrow buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Left arrow button
+                    GestureDetector(
+                      onTap: () {
+                        setState(
+                          () => _selectedSpacingType = 'sidebar-horizontal',
+                        );
+                        _updateSelectedSpacing(-5.0);
+                        setState(() => _selectedSpacingType = 'sidebar');
+                      },
+                      onLongPress: () {}, // Absorb to prevent settings opening
+                      onLongPressStart: (_) {
+                        setState(
+                          () => _selectedSpacingType = 'sidebar-horizontal',
+                        );
+                        _startContinuousAdjust(-2.0);
+                      },
+                      onLongPressEnd: (_) {
+                        _stopContinuousAdjust();
+                        setState(() => _selectedSpacingType = 'sidebar');
+                      },
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.chevron_left,
+                          color: AppColors.secondary,
+                          size: 40,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    // Current horizontal value display
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '${_tempSidebarHorizontalOffset.toStringAsFixed(1)} px',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.secondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    // Right arrow button
+                    GestureDetector(
+                      onTap: () {
+                        setState(
+                          () => _selectedSpacingType = 'sidebar-horizontal',
+                        );
+                        _updateSelectedSpacing(5.0);
+                        setState(() => _selectedSpacingType = 'sidebar');
+                      },
+                      onLongPress: () {}, // Absorb to prevent settings opening
+                      onLongPressStart: (_) {
+                        setState(
+                          () => _selectedSpacingType = 'sidebar-horizontal',
+                        );
+                        _startContinuousAdjust(2.0);
+                      },
+                      onLongPressEnd: (_) {
+                        _stopContinuousAdjust();
+                        setState(() => _selectedSpacingType = 'sidebar');
+                      },
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.chevron_right,
+                          color: AppColors.secondary,
+                          size: 40,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

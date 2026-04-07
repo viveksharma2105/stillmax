@@ -8,6 +8,9 @@ class AppService {
   static const EventChannel _eventsChannel = EventChannel(
     'com.stillmax/app_events',
   );
+  static const EventChannel _homeEventChannel = EventChannel(
+    'com.stillmax/home_events',
+  );
 
   Stream<AppEvent> watchAppEvents() {
     return _eventsChannel.receiveBroadcastStream().map((dynamic event) {
@@ -19,6 +22,10 @@ class AppService {
       );
     });
   }
+
+  /// Stream that emits when home button is pressed while app is in foreground
+  Stream<void> get onHomePressed =>
+      _homeEventChannel.receiveBroadcastStream().map((_) {});
 
   Future<List<AppInfo>> getInstalledApps() async {
     final List<dynamic>? result = await _channel.invokeMethod(

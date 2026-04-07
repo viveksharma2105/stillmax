@@ -21,6 +21,7 @@ class BlackBoxVaultScreen extends ConsumerStatefulWidget {
 class _BlackBoxVaultScreenState extends ConsumerState<BlackBoxVaultScreen>
     with WidgetsBindingObserver, TickerProviderStateMixin {
   late final AnimationController _gridAnimationController;
+  StreamSubscription<void>? _homeSubscription;
 
   @override
   void initState() {
@@ -36,10 +37,21 @@ class _BlackBoxVaultScreenState extends ConsumerState<BlackBoxVaultScreen>
         _showWelcomeInfo();
       });
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final appService = ref.read(appServiceProvider);
+      _homeSubscription = appService.onHomePressed.listen((_) {
+        if (mounted) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+      });
+    });
   }
 
   @override
   void dispose() {
+    _homeSubscription?.cancel();
     _gridAnimationController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();

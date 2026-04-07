@@ -82,6 +82,8 @@ class SettingsDb {
   sidebarSpacing; // vertical offset of sidebar from top edge, default 100.0
   late double
   favoritesSpacing; // vertical spacing between favorites section header and app list, default 8.0
+  late double
+  sidebarHorizontalOffset; // horizontal offset of sidebar from right edge, default 16.0
   int? leftWidgetSlotId; // appWidgetId for left slot in TimeHeader PageView
   int? rightWidgetSlotId; // appWidgetId for right slot in TimeHeader PageView
 }
@@ -220,7 +222,8 @@ SettingsDb _defaultSettingsDb() {
     ..iconTheme = AppIconTheme.defaultTheme.index
     ..clockSpacing = 40.0
     ..sidebarSpacing = 100.0
-    ..favoritesSpacing = 8.0;
+    ..favoritesSpacing = 8.0
+    ..sidebarHorizontalOffset = 16.0;
 }
 
 final isarProvider = FutureProvider<Isar>((ref) async {
@@ -1125,6 +1128,15 @@ class SettingsNotifier {
     await isar.writeTxn(() async {
       final settings = await isar.settingsDbs.get(1) ?? _defaultSettingsDb();
       settings.sidebarSpacing = spacing;
+      await isar.settingsDbs.put(settings);
+    });
+  }
+
+  Future<void> updateSidebarHorizontalOffset(double offset) async {
+    final isar = await ref.read(isarProvider.future);
+    await isar.writeTxn(() async {
+      final settings = await isar.settingsDbs.get(1) ?? _defaultSettingsDb();
+      settings.sidebarHorizontalOffset = offset;
       await isar.settingsDbs.put(settings);
     });
   }

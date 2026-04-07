@@ -76,6 +76,7 @@ public class MainActivity extends FlutterActivity {
     private static final int INVALID_APP_WIDGET_ID = -1;
 
     private EventChannel.EventSink appEventsSink;
+    private EventChannel.EventSink homeEventSink;
     private BroadcastReceiver packageBroadcastReceiver;
     private AppWidgetHost appWidgetHost;
     private AppWidgetManager appWidgetManager;
@@ -98,6 +99,19 @@ public class MainActivity extends FlutterActivity {
                     @Override
                     public void onCancel(Object arguments) {
                         appEventsSink = null;
+                    }
+                });
+
+        new EventChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), "com.stillmax/home_events")
+                .setStreamHandler(new EventChannel.StreamHandler() {
+                    @Override
+                    public void onListen(Object arguments, EventChannel.EventSink events) {
+                        homeEventSink = events;
+                    }
+
+                    @Override
+                    public void onCancel(Object arguments) {
+                        homeEventSink = null;
                     }
                 });
 
@@ -283,6 +297,16 @@ public class MainActivity extends FlutterActivity {
     @Override
     protected void onStop() {
         super.onStop();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        if (intent != null && intent.hasCategory(Intent.CATEGORY_HOME)) {
+            if (homeEventSink != null) {
+                homeEventSink.success("home_pressed");
+            }
+        }
     }
 
     private void registerPackageChangeReceiver() {

@@ -23,6 +23,28 @@ class StillmaxSettingsScreen extends ConsumerStatefulWidget {
 
 class _StillmaxSettingsScreenState
     extends ConsumerState<StillmaxSettingsScreen> {
+  StreamSubscription<void>? _homeSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final appService = ref.read(appServiceProvider);
+      _homeSubscription = appService.onHomePressed.listen((_) {
+        if (mounted) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _homeSubscription?.cancel();
+    super.dispose();
+  }
+
   Future<void> _addHeaderWidgetSlot(bool leftSlot) async {
     final selected = await showModalBottomSheet<AvailableWidgetInfo>(
       context: context,

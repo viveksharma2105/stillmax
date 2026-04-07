@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../services/app_service.dart';
 import '../state/app_list_provider.dart';
 import '../theme/app_theme.dart';
 import 'black_box_vault_screen.dart';
@@ -30,6 +33,7 @@ class _BlackBoxPasswordScreenState extends ConsumerState<BlackBoxPasswordScreen>
   late Animation<double> _shakeAnimation;
   late AnimationController _successController;
   late Animation<double> _successAnimation;
+  StreamSubscription<void>? _homeSubscription;
 
   @override
   void initState() {
@@ -51,10 +55,21 @@ class _BlackBoxPasswordScreenState extends ConsumerState<BlackBoxPasswordScreen>
       begin: 1.0,
       end: 1.2,
     ).chain(CurveTween(curve: Curves.easeOut)).animate(_successController);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final appService = ref.read(appServiceProvider);
+      _homeSubscription = appService.onHomePressed.listen((_) {
+        if (mounted) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+      });
+    });
   }
 
   @override
   void dispose() {
+    _homeSubscription?.cancel();
     _shakeController.dispose();
     _successController.dispose();
     super.dispose();
