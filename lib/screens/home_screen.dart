@@ -361,6 +361,7 @@ class _LayoutAdjustmentOverlayState extends State<_LayoutAdjustmentOverlay> {
   late double _tempFavoritesSpacing;
   late double _tempSidebarSpacing;
   String _selectedSpacingType = 'time'; // 'time', 'favorites', 'sidebar'
+  Timer? _adjustTimer;
 
   @override
   void initState() {
@@ -368,6 +369,24 @@ class _LayoutAdjustmentOverlayState extends State<_LayoutAdjustmentOverlay> {
     _tempClockSpacing = widget.currentClockSpacing;
     _tempFavoritesSpacing = widget.currentFavoritesSpacing;
     _tempSidebarSpacing = widget.currentSidebarSpacing;
+  }
+
+  void _startContinuousAdjust(double delta) {
+    _adjustTimer?.cancel();
+    _adjustTimer = Timer.periodic(const Duration(milliseconds: 80), (_) {
+      _updateSelectedSpacing(delta);
+    });
+  }
+
+  void _stopContinuousAdjust() {
+    _adjustTimer?.cancel();
+    _adjustTimer = null;
+  }
+
+  @override
+  void dispose() {
+    _adjustTimer?.cancel();
+    super.dispose();
   }
 
   double get _currentSelectedSpacing {
@@ -450,43 +469,80 @@ class _LayoutAdjustmentOverlayState extends State<_LayoutAdjustmentOverlay> {
           ),
         ),
 
-        // Drag handle line and pill
+        // Drag handle line and pill with arrow buttons
         Positioned(
           left: 0,
           right: 0,
           top: handleTop,
-          child: GestureDetector(
-            onVerticalDragUpdate: (details) =>
-                _updateSelectedSpacing(details.delta.dy),
-            child: Column(
-              children: [
-                // "Drag to adjust" label
-                Text(
-                  'Drag up/down to adjust',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.secondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // Drag handle pill
-                Container(
-                  width: 80,
-                  height: 6,
+          child: Column(
+            children: [
+              // Up arrow button
+              GestureDetector(
+                onTap: () => _updateSelectedSpacing(-5.0),
+                onLongPress: () {}, // Absorb to prevent settings opening
+                onLongPressStart: (_) => _startContinuousAdjust(-2.0),
+                onLongPressEnd: (_) => _stopContinuousAdjust(),
+                child: Container(
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.keyboard_arrow_up,
                     color: AppColors.secondary,
-                    borderRadius: BorderRadius.circular(3),
+                    size: 40,
                   ),
                 ),
-                const SizedBox(height: 2),
-                // Full-width line
-                Container(
-                  height: 2,
-                  color: AppColors.secondary.withValues(alpha: 0.5),
+              ),
+              const SizedBox(height: 8),
+              // Drag handle with gesture detector
+              GestureDetector(
+                onVerticalDragUpdate: (details) =>
+                    _updateSelectedSpacing(details.delta.dy),
+                child: Column(
+                  children: [
+                    // Drag handle pill
+                    Container(
+                      width: 80,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    // Full-width line
+                    Container(
+                      height: 2,
+                      color: AppColors.secondary.withValues(alpha: 0.5),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 8),
+              // Down arrow button
+              GestureDetector(
+                onTap: () => _updateSelectedSpacing(5.0),
+                onLongPress: () {}, // Absorb to prevent settings opening
+                onLongPressStart: (_) => _startContinuousAdjust(2.0),
+                onLongPressEnd: (_) => _stopContinuousAdjust(),
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.keyboard_arrow_down,
+                    color: AppColors.secondary,
+                    size: 40,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
 

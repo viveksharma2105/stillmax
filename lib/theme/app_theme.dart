@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-const int kMaxStarredApps = 5;
+const int kMaxStarredApps = 8;
 
 enum AppIconTheme {
   defaultTheme, // no filter — original icon colors

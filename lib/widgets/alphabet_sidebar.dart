@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
@@ -28,6 +30,7 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
   String? _activeLetter;
   bool _showPopup = false;
   int _version = 0;
+  double? _touchY;
 
   static const _itemWidth = 28.0;
   static const _maxItemHeight = 24.0;
@@ -99,6 +102,7 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                 (activeIndex < 0 ? 0 : activeIndex) * itemHeight;
 
             return Stack(
+              clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
                 AnimatedOpacity(
@@ -107,16 +111,30 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                   opacity: barOpacity,
                   child: GestureDetector(
                     behavior: HitTestBehavior.translucent,
-                    onVerticalDragStart: (details) =>
-                        _selectLetter(details.localPosition, itemHeight),
-                    onVerticalDragUpdate: (details) =>
-                        _selectLetter(details.localPosition, itemHeight),
+                    onVerticalDragStart: (details) {
+                      _selectLetter(details.localPosition, itemHeight);
+                      setState(() {
+                        _touchY = details.localPosition.dy;
+                      });
+                    },
+                    onVerticalDragUpdate: (details) {
+                      _selectLetter(details.localPosition, itemHeight);
+                      setState(() {
+                        _touchY = details.localPosition.dy;
+                      });
+                    },
                     onVerticalDragEnd: (_) {
-                      setState(() => _activeLetter = null);
+                      setState(() {
+                        _activeLetter = null;
+                        _touchY = null;
+                      });
                       _hidePopup();
                     },
                     onVerticalDragCancel: () {
-                      setState(() => _activeLetter = null);
+                      setState(() {
+                        _activeLetter = null;
+                        _touchY = null;
+                      });
                       _hidePopup();
                     },
                     onTapDown: (details) {
@@ -172,18 +190,22 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                     ),
                   ),
                 ),
-                IgnorePointer(
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 120),
-                    curve: Curves.easeOut,
-                    opacity: _showPopup && _activeLetter != null ? 1 : 0,
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Transform.translate(
-                        offset: const Offset(-50, 0),
+                // Letter popup bubble - moves with touch
+                if (_showPopup && _activeLetter != null && _touchY != null)
+                  Positioned(
+                    left: -90, // Curve outward from sidebar
+                    top: (_touchY! - 22).clamp(
+                      0.0,
+                      constraints.maxHeight - 44,
+                    ), // Center bubble on touch, keep in bounds
+                    child: IgnorePointer(
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 120),
+                        curve: Curves.easeOut,
+                        opacity: 1.0,
                         child: Container(
-                          width: 56,
-                          height: 56,
+                          width: 44,
+                          height: 44,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: const Color(
@@ -197,7 +219,7 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                           child: Text(
                             _activeLetter ?? '',
                             style: TextStyle(
-                              fontSize: 22,
+                              fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: _activeLetter == '★'
                                   ? AppColors.secondary
@@ -208,7 +230,6 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                       ),
                     ),
                   ),
-                ),
               ],
             );
           },
@@ -223,6 +244,19 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
     final isEnabled = _isEnabledLetter(letter);
     final isStar = letter == '★';
 
+    // Calculate horizontal offset for C-curve effect
+    double offsetX = 0.0;
+    if (_touchY != null) {
+      final letterCenterY = index * itemHeight + itemHeight / 2;
+      final distance = (letterCenterY - _touchY!).abs();
+      const maxBulge = 22.0;
+      final affectRadius = itemHeight * 4;
+
+      if (distance < affectRadius) {
+        offsetX = -maxBulge * pow(1 - distance / affectRadius, 2);
+      }
+    }
+
     // Scale font sizes based on available item height
     final scaleFactor = (itemHeight / _maxItemHeight).clamp(0.6, 1.0);
     double baseFontSize;
@@ -230,35 +264,40 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
 
     if (isStar) {
       // Star is always active and in accent color
-      baseFontSize = 13;
+      baseFontSize = 14;
       opacity = 1.0;
     } else if (!isEnabled) {
-      baseFontSize = 10;
-      opacity = 0.15;
+      baseFontSize = 11;
+      opacity = 0.25;
     } else if (isActive) {
-      baseFontSize = 13;
+      baseFontSize = 15;
       opacity = 1.0;
     } else {
-      baseFontSize = 11;
-      opacity = 0.40;
+      baseFontSize = 13;
+      opacity = 0.70;
     }
 
     final fontSize = baseFontSize * scaleFactor;
 
-    return AnimatedScale(
-      duration: const Duration(milliseconds: 95),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 100),
       curve: Curves.easeOut,
-      scale: isActive ? 1.3 : 1.0,
-      child: AnimatedOpacity(
+      transform: Matrix4.translationValues(offsetX, 0, 0),
+      child: AnimatedScale(
         duration: const Duration(milliseconds: 95),
         curve: Curves.easeOut,
-        opacity: opacity,
-        child: Text(
-          letter,
-          style: TextStyle(
-            fontSize: fontSize,
-            color: (isStar || isActive) ? AppColors.secondary : Colors.white,
-            fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+        scale: isActive ? 1.3 : 1.0,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 95),
+          curve: Curves.easeOut,
+          opacity: opacity,
+          child: Text(
+            letter,
+            style: TextStyle(
+              fontSize: fontSize,
+              color: (isStar || isActive) ? AppColors.secondary : Colors.white,
+              fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+            ),
           ),
         ),
       ),
