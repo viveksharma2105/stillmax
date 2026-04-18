@@ -33,7 +33,8 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
   int _version = 0;
   double? _touchY;
 
-  static const _itemWidth = 28.0;
+  static const _itemWidth = 30.0;
+  static const _touchWidth = 60.0;
   static const _maxItemHeight = 24.0;
   static const _minItemHeight = 16.0;
 
@@ -99,7 +100,7 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
 
     return SafeArea(
       child: SizedBox(
-        width: 32,
+        width: _touchWidth,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final itemHeight = _calculateItemHeight(constraints.maxHeight);
@@ -116,26 +117,26 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                   opacity: barOpacity,
                   child: GestureDetector(
                     behavior: HitTestBehavior.translucent,
-                    onVerticalDragStart: (details) {
+                    onPanStart: (details) {
                       _selectLetter(details.localPosition, itemHeight);
                       setState(() {
                         _touchY = details.localPosition.dy;
                       });
                     },
-                    onVerticalDragUpdate: (details) {
+                    onPanUpdate: (details) {
                       setState(() {
                         _touchY = details.localPosition.dy;
                       });
                       _selectLetter(details.localPosition, itemHeight);
                     },
-                    onVerticalDragEnd: (_) {
+                    onPanEnd: (_) {
                       setState(() {
                         _activeLetter = null;
                         _touchY = null;
                       });
                       _hidePopup();
                     },
-                    onVerticalDragCancel: () {
+                    onPanCancel: () {
                       setState(() {
                         _activeLetter = null;
                         _touchY = null;
@@ -154,43 +155,53 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                       );
                     },
                     child: SizedBox(
-                      width: _itemWidth,
-                      child: Stack(
-                        children: [
-                          if (activeIndex >= 0)
-                            AnimatedPositioned(
-                              duration: const Duration(milliseconds: 100),
-                              curve: Curves.easeOut,
-                              left: 0,
-                              top: indicatorTop,
-                              child: Container(
-                                width: 2,
-                                height: itemHeight,
-                                decoration: BoxDecoration(
-                                  color: AppColors.secondary,
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                              ),
-                            ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
+                      width: _touchWidth,
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: SizedBox(
+                          width: _itemWidth,
+                          child: Stack(
                             children: [
-                              for (var i = 0; i < widget.letters.length; i++)
-                                SizedBox(
-                                  width: _itemWidth,
-                                  height: itemHeight,
-                                  child: Center(
-                                    child: _buildLetterWidget(
-                                      i,
-                                      activeIndex,
-                                      itemHeight,
+                              if (activeIndex >= 0)
+                                AnimatedPositioned(
+                                  duration: const Duration(milliseconds: 100),
+                                  curve: Curves.easeOut,
+                                  left: 0,
+                                  top: indicatorTop,
+                                  child: Container(
+                                    width: 2,
+                                    height: itemHeight,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.secondary,
+                                      borderRadius: BorderRadius.circular(999),
                                     ),
                                   ),
                                 ),
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  for (
+                                    var i = 0;
+                                    i < widget.letters.length;
+                                    i++
+                                  )
+                                    SizedBox(
+                                      width: _itemWidth,
+                                      height: itemHeight,
+                                      child: Center(
+                                        child: _buildLetterWidget(
+                                          i,
+                                          activeIndex,
+                                          itemHeight,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
@@ -259,8 +270,8 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
     if (_touchY != null) {
       final letterCenterY = index * itemHeight + itemHeight / 2;
       final distance = (letterCenterY - _touchY!).abs();
-      const maxBulge = 22.0;
-      final affectRadius = itemHeight * 4;
+      const maxBulge = 34.0;
+      final affectRadius = itemHeight * 5.2;
 
       if (distance < affectRadius) {
         offsetX = -maxBulge * pow(1 - distance / affectRadius, 2);
@@ -274,17 +285,17 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
 
     if (isStar) {
       // Star is always active and in accent color
-      baseFontSize = 14;
+      baseFontSize = 16;
       opacity = 1.0;
     } else if (!isEnabled) {
-      baseFontSize = 11;
-      opacity = 0.25;
+      baseFontSize = 12;
+      opacity = 0.3;
     } else if (isActive) {
-      baseFontSize = 15;
+      baseFontSize = 17;
       opacity = 1.0;
     } else {
-      baseFontSize = 13;
-      opacity = 0.70;
+      baseFontSize = 15;
+      opacity = 0.82;
     }
 
     final fontSize = baseFontSize * scaleFactor;
@@ -306,7 +317,7 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
             style: TextStyle(
               fontSize: fontSize,
               color: (isStar || isActive) ? AppColors.secondary : Colors.white,
-              fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+              fontWeight: isActive ? FontWeight.w800 : FontWeight.w700,
             ),
           ),
         ),

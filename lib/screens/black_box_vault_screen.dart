@@ -126,7 +126,12 @@ class _BlackBoxVaultScreenState extends ConsumerState<BlackBoxVaultScreen>
     try {
       final appService = ref.read(appServiceProvider);
       // Launch with FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS so hidden apps don't appear in recents
-      await appService.launchAppHidden(app.packageName);
+      final hiddenAppInfo = appInfoFromDbRow(
+        storedIdentity: app.packageName,
+        name: app.appName,
+        icon: app.icon,
+      );
+      await appService.launchAppHidden(hiddenAppInfo);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -156,7 +161,20 @@ class _BlackBoxVaultScreenState extends ConsumerState<BlackBoxVaultScreen>
       ),
     );
     if (confirm != true || !mounted) return;
-    await ref.read(hiddenAppsProvider.notifier).unhideApp(app.packageName);
+    final sourceApps =
+        ref.read(appListProvider).valueOrNull ?? const <AppInfo>[];
+    AppInfo? candidate;
+    for (final source in sourceApps) {
+      if (storedKeyMatchesApp(app.packageName, source)) {
+        candidate = source;
+        break;
+      }
+    }
+
+    final keyToRemove = candidate != null
+        ? appIdentityKey(candidate)
+        : app.packageName;
+    await ref.read(hiddenAppsProvider.notifier).unhideApp(keyToRemove);
   }
 
   Future<void> _addAppsToVault() async {
@@ -166,7 +184,7 @@ class _BlackBoxVaultScreenState extends ConsumerState<BlackBoxVaultScreen>
 
     // Filter to show only visible apps (not already hidden)
     final visibleApps = allApps
-        .where((app) => !hiddenPackages.contains(app.packageName))
+        .where((app) => !identityCollectionContainsApp(hiddenPackages, app))
         .toList();
 
     final selected = await showModalBottomSheet<List<AppInfo>>(
@@ -437,7 +455,7 @@ class _AppPickerSheetState extends ConsumerState<_AppPickerSheet> {
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(
                           widget.apps
-                              .where((a) => _selected.contains(a.packageName))
+                              .where((a) => _selected.contains(a.instanceKey))
                               .toList(),
                         ),
                         child: Text('Add (${_selected.length})'),
@@ -468,7 +486,7 @@ class _AppPickerSheetState extends ConsumerState<_AppPickerSheet> {
               itemCount: filteredApps.length,
               itemBuilder: (context, index) {
                 final app = filteredApps[index];
-                final isSelected = _selected.contains(app.packageName);
+                final isSelected = _selected.contains(app.instanceKey);
                 return ListTile(
                   leading: Container(
                     width: 40,
@@ -491,9 +509,9 @@ class _AppPickerSheetState extends ConsumerState<_AppPickerSheet> {
                     onChanged: (_) {
                       setState(() {
                         if (isSelected) {
-                          _selected.remove(app.packageName);
+                          _selected.remove(app.instanceKey);
                         } else {
-                          _selected.add(app.packageName);
+                          _selected.add(app.instanceKey);
                         }
                       });
                     },
@@ -501,9 +519,9 @@ class _AppPickerSheetState extends ConsumerState<_AppPickerSheet> {
                   onTap: () {
                     setState(() {
                       if (isSelected) {
-                        _selected.remove(app.packageName);
+                        _selected.remove(app.instanceKey);
                       } else {
-                        _selected.add(app.packageName);
+                        _selected.add(app.instanceKey);
                       }
                     });
                   },

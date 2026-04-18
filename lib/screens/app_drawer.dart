@@ -36,6 +36,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   final Map<String, GlobalKey> _sectionKeys = {};
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
+  final ValueNotifier<String> _effectiveSearchQuery = ValueNotifier<String>('');
+  Timer? _searchDebounce;
+  Timer? _initialFocusTimer;
 
   @override
   void initState() {
@@ -43,11 +46,20 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     _sheetController.addListener(_onSheetChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      // Only auto-focus search bar if no initial letter is provided
       if (widget.initialLetter == null) {
-        _searchFocusNode.requestFocus();
+        _initialFocusTimer = Timer(const Duration(milliseconds: 140), () {
+          if (!mounted) {
+            return;
+          }
+          _searchFocusNode.requestFocus();
+        });
       } else {
-        _scrollToLetter(widget.initialLetter!);
+        _initialFocusTimer = Timer(const Duration(milliseconds: 220), () {
+          if (!mounted) {
+            return;
+          }
+          _scrollToLetter(widget.initialLetter!);
+        });
       }
     });
   }
@@ -63,7 +75,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   void dispose() {
     _sheetController.removeListener(_onSheetChanged);
     _sheetController.dispose();
-    ref.read(searchQueryProvider.notifier).state = '';
+    _initialFocusTimer?.cancel();
+    _searchDebounce?.cancel();
+    _effectiveSearchQuery.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
@@ -75,16 +89,42 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     if (hapticsEnabled) {
       await HapticFeedback.selectionClick();
     }
-    await _service.launchApp(app.packageName);
+    await _service.launchApp(app);
     if (mounted) {
-      ref.read(searchQueryProvider.notifier).state = '';
+      _resetSearch();
       widget.onClose();
     }
   }
 
   void _dismissDrawer() {
-    ref.read(searchQueryProvider.notifier).state = '';
+    _searchFocusNode.unfocus();
+    _resetSearch();
     widget.onClose();
+  }
+
+  void _resetSearch() {
+    _searchDebounce?.cancel();
+    _searchDebounce = null;
+    if (_searchController.text.isNotEmpty) {
+      _searchController.clear();
+    }
+    _effectiveSearchQuery.value = '';
+  }
+
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+
+    if (value.trim().isEmpty) {
+      _effectiveSearchQuery.value = '';
+      return;
+    }
+
+    _searchDebounce = Timer(const Duration(milliseconds: 80), () {
+      if (!mounted) {
+        return;
+      }
+      _effectiveSearchQuery.value = value;
+    });
   }
 
   void _scrollToLetter(String letter) {
@@ -98,26 +138,15 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     }
   }
 
-  Widget _buildAlphabetSidebar(List<AppInfo> apps) {
-    final sorted = [...apps]
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    final grouped = _groupAppsByLetter(sorted);
-
-    final allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
-    final availableLetters = grouped.keys.toSet();
-
-    return AlphabetSidebar(
-      letters: allLetters,
-      availableLetters: availableLetters,
-      onLetterChanged: _scrollToLetter,
-      fontScaleFactor: 1.0,
-      isScrolling: false,
-    );
-  }
-
   Map<String, List<AppInfo>> _groupAppsByLetter(List<AppInfo> source) {
+    if (source.isEmpty) {
+      return const <String, List<AppInfo>>{};
+    }
+
+    final sorted = [...source]
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     final grouped = <String, List<AppInfo>>{};
-    for (final app in source) {
+    for (final app in sorted) {
       final name = app.name.trim();
       final letter = name.isEmpty ? '#' : name[0].toUpperCase();
       grouped.putIfAbsent(letter, () => <AppInfo>[]).add(app);
@@ -128,11 +157,39 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     return Map<String, List<AppInfo>>.fromEntries(entries);
   }
 
+  void _syncSectionKeys(Iterable<String> letters) {
+    final active = letters.toSet();
+    _sectionKeys.removeWhere((key, _) => !active.contains(key));
+    for (final letter in active) {
+      _sectionKeys.putIfAbsent(letter, () => GlobalKey());
+    }
+  }
+
+  List<AppInfo> _filterApps(List<AppInfo> source, String query) {
+    final normalized = query.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return const <AppInfo>[];
+    }
+
+    return source
+        .where((app) => app.name.toLowerCase().contains(normalized))
+        .toList(growable: false);
+  }
+
+  Widget _buildAlphabetSidebar(Set<String> availableLetters) {
+    return AlphabetSidebar(
+      letters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split(''),
+      availableLetters: availableLetters,
+      onLetterChanged: _scrollToLetter,
+      fontScaleFactor: 1.0,
+      isScrolling: false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final apps = ref.watch(filteredAppsProvider);
     final allApps = ref.watch(displayAppsProvider);
-    final searchQuery = ref.watch(searchQueryProvider);
+    final iconTheme = ref.watch(iconThemeProvider);
     final wallpaper = ref.watch(wallpaperBytesProvider).valueOrNull;
     final scrollPhysics = allApps.length > 40
         ? const ClampingScrollPhysics()
@@ -144,19 +201,25 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       child: Stack(
         children: [
           Positioned.fill(
-            child: wallpaper != null && wallpaper.isNotEmpty
-                ? Image.memory(
-                    wallpaper,
-                    fit: BoxFit.cover,
-                    gaplessPlayback: true,
-                  )
-                : Container(color: AppColors.background),
+            child: RepaintBoundary(
+              child: wallpaper != null && wallpaper.isNotEmpty
+                  ? Image.memory(
+                      wallpaper,
+                      fit: BoxFit.cover,
+                      gaplessPlayback: true,
+                    )
+                  : Container(color: AppColors.background),
+            ),
           ),
-          Positioned.fill(child: Container(color: const Color(0x99000000))),
+          Positioned.fill(child: Container(color: const Color(0x88000000))),
           Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-              child: const SizedBox.expand(),
+            child: RepaintBoundary(
+              child: IgnorePointer(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: const SizedBox.expand(),
+                ),
+              ),
             ),
           ),
           GestureDetector(
@@ -169,52 +232,40 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
               snap: true,
               snapSizes: const [0.95],
               builder: (context, scrollController) {
-                return TweenAnimationBuilder<double>(
-                  duration: const Duration(milliseconds: 420),
-                  curve: Curves.easeOutBack,
-                  tween: Tween<double>(begin: 16, end: 0),
-                  builder: (context, offsetY, child) {
-                    return Transform.translate(
-                      offset: Offset(0, offsetY),
-                      child: child,
-                    );
-                  },
-                  child: GlassCard(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(AppRadius.xl),
-                    ),
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.25),
-                            borderRadius: BorderRadius.circular(AppRadius.full),
-                          ),
+                return GlassCard(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppRadius.xl),
+                  ),
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(AppRadius.full),
                         ),
-                        const SizedBox(height: 12),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: _SearchBar(
-                                  controller: _searchController,
-                                  focusNode: _searchFocusNode,
-                                  onChanged: (value) {
-                                    ref
-                                            .read(searchQueryProvider.notifier)
-                                            .state =
-                                        value;
-                                  },
-                                ),
+                      ),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _SimpleSearchBar(
+                                controller: _searchController,
+                                focusNode: _searchFocusNode,
+                                onChanged: _onSearchChanged,
                               ),
-                              const SizedBox(width: 12),
-                              GestureDetector(
+                            ),
+                            const SizedBox(width: 12),
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
                                 onTap: _dismissDrawer,
-                                child: Container(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Ink(
                                   width: 48,
                                   height: 48,
                                   decoration: BoxDecoration(
@@ -223,39 +274,59 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
                                   ),
                                   child: Icon(
                                     Icons.keyboard_arrow_down_rounded,
-                                    color: Colors.white.withValues(alpha: 0.7),
+                                    color: Colors.white.withValues(alpha: 0.76),
                                     size: 28,
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 12),
-                        Expanded(
-                          child: Stack(
-                            children: [
-                              searchQuery.trim().isEmpty
-                                  ? _EmptyState()
-                                  : _GroupedAppList(
-                                      apps: apps,
-                                      onLaunch: _launchAndClose,
-                                      scrollController: scrollController,
-                                      physics: scrollPhysics,
-                                      sectionKeys: _sectionKeys,
-                                    ),
-                              if (searchQuery.trim().isNotEmpty)
-                                Positioned(
-                                  right: 0,
-                                  top: 0,
-                                  bottom: 0,
-                                  child: _buildAlphabetSidebar(apps),
+                      ),
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: ValueListenableBuilder<String>(
+                          valueListenable: _effectiveSearchQuery,
+                          builder: (context, effectiveQuery, _) {
+                            if (effectiveQuery.trim().isEmpty) {
+                              _syncSectionKeys(const <String>[]);
+                              return const _EmptyState();
+                            }
+
+                            final filteredApps = _filterApps(
+                              allApps,
+                              effectiveQuery,
+                            );
+                            final groupedApps = _groupAppsByLetter(
+                              filteredApps,
+                            );
+                            _syncSectionKeys(groupedApps.keys);
+
+                            return Stack(
+                              children: [
+                                _GroupedAppList(
+                                  groupedApps: groupedApps,
+                                  iconTheme: iconTheme,
+                                  onLaunch: _launchAndClose,
+                                  scrollController: scrollController,
+                                  physics: scrollPhysics,
+                                  sectionKeys: _sectionKeys,
                                 ),
-                            ],
-                          ),
+                                if (groupedApps.isNotEmpty)
+                                  Positioned(
+                                    right: 0,
+                                    top: 0,
+                                    bottom: 0,
+                                    child: _buildAlphabetSidebar(
+                                      groupedApps.keys.toSet(),
+                                    ),
+                                  ),
+                              ],
+                            );
+                          },
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 );
               },
@@ -267,8 +338,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   }
 }
 
-class _SearchBar extends StatelessWidget {
-  const _SearchBar({
+class _SimpleSearchBar extends StatelessWidget {
+  const _SimpleSearchBar({
     required this.controller,
     required this.focusNode,
     required this.onChanged,
@@ -280,30 +351,61 @@ class _SearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: GlassCardLight(
-        borderRadius: BorderRadius.circular(16),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Material(
-          color: Colors.transparent,
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final hasText = value.text.isNotEmpty;
+
+        return Container(
+          height: 46,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: TextField(
             controller: controller,
             focusNode: focusNode,
-            autofocus: true,
+            autofocus: false,
             onChanged: onChanged,
-            style: AppTypography.bodyLarge.copyWith(color: AppColors.onSurface),
-            decoration: const InputDecoration(
+            style: AppTypography.bodyLarge.copyWith(
+              color: AppColors.onSurface,
+              fontSize: 15,
+            ),
+            decoration: InputDecoration(
               hintText: 'Search apps',
-              prefixIcon: Icon(Icons.search, size: 20),
-              prefixIconConstraints: BoxConstraints(minWidth: 36),
+              hintStyle: AppTypography.bodyLarge.copyWith(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 15,
+              ),
               border: InputBorder.none,
               isDense: true,
-              contentPadding: EdgeInsets.symmetric(vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              prefixIcon: Icon(
+                Icons.search_rounded,
+                size: 20,
+                color: Colors.white.withValues(alpha: 0.72),
+              ),
+              prefixIconConstraints: const BoxConstraints(minWidth: 38),
+              suffixIcon: hasText
+                  ? IconButton(
+                      onPressed: () {
+                        controller.clear();
+                        onChanged('');
+                        focusNode.requestFocus();
+                      },
+                      splashRadius: 18,
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: Colors.white.withValues(alpha: 0.72),
+                      ),
+                    )
+                  : null,
+              suffixIconConstraints: const BoxConstraints(minWidth: 36),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -345,14 +447,16 @@ class _EmptyState extends StatelessWidget {
 
 class _GroupedAppList extends StatelessWidget {
   const _GroupedAppList({
-    required this.apps,
+    required this.groupedApps,
+    required this.iconTheme,
     required this.onLaunch,
     required this.scrollController,
     required this.physics,
     required this.sectionKeys,
   });
 
-  final List<AppInfo> apps;
+  final Map<String, List<AppInfo>> groupedApps;
+  final AppIconTheme iconTheme;
   final Future<void> Function(AppInfo app) onLaunch;
   final ScrollController scrollController;
   final ScrollPhysics physics;
@@ -360,12 +464,8 @@ class _GroupedAppList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sorted = [...apps]
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    final grouped = _groupAppsByLetter(sorted);
-
     // Populate section keys for each letter
-    for (final letter in grouped.keys) {
+    for (final letter in groupedApps.keys) {
       sectionKeys.putIfAbsent(letter, () => GlobalKey());
     }
 
@@ -374,7 +474,7 @@ class _GroupedAppList extends StatelessWidget {
       primary: false,
       physics: physics,
       slivers: [
-        for (final entry in grouped.entries) ...[
+        for (final entry in groupedApps.entries) ...[
           SliverPersistentHeader(
             pinned: true,
             delegate: _SectionHeaderDelegate(
@@ -386,13 +486,14 @@ class _GroupedAppList extends StatelessWidget {
             delegate: SliverChildBuilderDelegate(
               (context, index) => _AppItem(
                 app: entry.value[index],
+                iconTheme: iconTheme,
                 onTap: () => unawaited(onLaunch(entry.value[index])),
               ),
               childCount: entry.value.length,
             ),
           ),
         ],
-        if (grouped.isEmpty)
+        if (groupedApps.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,
             child: Center(
@@ -419,19 +520,6 @@ class _GroupedAppList extends StatelessWidget {
           ),
       ],
     );
-  }
-
-  Map<String, List<AppInfo>> _groupAppsByLetter(List<AppInfo> source) {
-    final grouped = <String, List<AppInfo>>{};
-    for (final app in source) {
-      final name = app.name.trim();
-      final letter = name.isEmpty ? '#' : name[0].toUpperCase();
-      grouped.putIfAbsent(letter, () => <AppInfo>[]).add(app);
-    }
-
-    final entries = grouped.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-    return Map<String, List<AppInfo>>.fromEntries(entries);
   }
 }
 
@@ -475,16 +563,19 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 }
 
-class _AppItem extends ConsumerWidget {
-  const _AppItem({required this.app, required this.onTap});
+class _AppItem extends StatelessWidget {
+  const _AppItem({
+    required this.app,
+    required this.iconTheme,
+    required this.onTap,
+  });
 
   final AppInfo app;
+  final AppIconTheme iconTheme;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final iconTheme = ref.watch(iconThemeProvider);
-
+  Widget build(BuildContext context) {
     Widget buildIcon() {
       switch (iconTheme) {
         case AppIconTheme.fun:

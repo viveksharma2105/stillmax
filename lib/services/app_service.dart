@@ -1,6 +1,46 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 
+const _identitySeparator = '|';
+
+String buildAppIdentityKey({
+  required String packageName,
+  String? instanceId,
+  int? userSerial,
+  String? className,
+}) {
+  final normalizedPackage = packageName.trim();
+  final normalizedInstanceId = (instanceId ?? '').trim();
+  final normalizedUserSerial = userSerial ?? 0;
+  final normalizedClassName = (className ?? '').trim();
+  return [
+    normalizedPackage,
+    normalizedUserSerial.toString(),
+    normalizedInstanceId,
+    normalizedClassName,
+  ].join(_identitySeparator);
+}
+
+AppIdentityParts parseAppIdentityKey(String identityKey) {
+  final parts = identityKey.split(_identitySeparator);
+  if (parts.length < 4) {
+    return AppIdentityParts(
+      packageName: identityKey.trim(),
+      userSerial: 0,
+      instanceId: '',
+      className: '',
+    );
+  }
+
+  final userSerial = int.tryParse(parts[1]) ?? 0;
+  return AppIdentityParts(
+    packageName: parts[0],
+    userSerial: userSerial,
+    instanceId: parts[2],
+    className: parts.sublist(3).join(_identitySeparator),
+  );
+}
+
 class AppService {
   static const MethodChannel _channel = MethodChannel(
     'com.stillmax/app_service',
@@ -41,27 +81,30 @@ class AppService {
             (map['appName'] as String?) ??
             'Unknown',
         packageName: map['packageName'] as String? ?? '',
+        instanceId: map['instanceId'] as String? ?? '',
+        userSerial: (map['userSerial'] as num?)?.toInt() ?? 0,
+        className: map['className'] as String? ?? '',
         icon: map['icon'] as Uint8List? ?? Uint8List(0),
       );
     }).toList();
   }
 
-  Future<bool> launchApp(String packageName) async {
+  Future<bool> launchApp(AppInfo app) async {
     final bool? result = await _channel.invokeMethod('launchApp', {
-      'packageName': packageName,
+      ...app.toChannelMap(),
     });
     return result ?? false;
   }
 
-  Future<bool> launchAppHidden(String packageName) async {
-    if (packageName.isEmpty) {
+  Future<bool> launchAppHidden(AppInfo app) async {
+    if (app.packageName.isEmpty) {
       debugPrint('launchAppHidden: empty package name');
       return false;
     }
 
     try {
       final result = await _channel.invokeMethod<bool>('launchAppHidden', {
-        'packageName': packageName,
+        ...app.toChannelMap(),
       });
       return result ?? false;
     } on PlatformException catch (e) {
@@ -80,16 +123,16 @@ class AppService {
     return result ?? false;
   }
 
-  Future<bool> openAppInfo(String packageName) async {
+  Future<bool> openAppInfo(AppInfo app) async {
     final bool? result = await _channel.invokeMethod('openAppInfo', {
-      'packageName': packageName,
+      ...app.toChannelMap(),
     });
     return result ?? false;
   }
 
-  Future<bool> uninstallApp(String packageName) async {
+  Future<bool> uninstallApp(AppInfo app) async {
     final bool? result = await _channel.invokeMethod('uninstallApp', {
-      'packageName': packageName,
+      ...app.toChannelMap(),
     });
     return result ?? false;
   }
@@ -126,6 +169,11 @@ class AppService {
     final bool? result = await _channel.invokeMethod('setWallpaperFromPath', {
       'path': path,
     });
+    return result ?? false;
+  }
+
+  Future<bool> resetWallpaperToDefault() async {
+    final bool? result = await _channel.invokeMethod('resetWallpaperToDefault');
     return result ?? false;
   }
 
@@ -314,6 +362,30 @@ class AppService {
       debugPrint('Settings error: ${e.message}');
     }
   }
+
+  Future<bool> requestNotificationPermission() async {
+    try {
+      final bool? granted = await _channel.invokeMethod<bool>(
+        'requestNotificationPermission',
+      );
+      return granted ?? false;
+    } on PlatformException catch (e) {
+      debugPrint('Notification permission error: ${e.message}');
+      return false;
+    }
+  }
+
+  Future<bool> isNotificationListenerEnabled() async {
+    try {
+      final bool? enabled = await _channel.invokeMethod<bool>(
+        'isNotificationListenerEnabled',
+      );
+      return enabled ?? false;
+    } on PlatformException catch (e) {
+      debugPrint('Notification listener check error: ${e.message}');
+      return false;
+    }
+  }
 }
 
 class LatLng {
@@ -359,28 +431,83 @@ class AppEvent {
   final String packageName;
 }
 
+class AppIdentityParts {
+  const AppIdentityParts({
+    required this.packageName,
+    required this.instanceId,
+    required this.userSerial,
+    required this.className,
+  });
+
+  final String packageName;
+  final String instanceId;
+  final int userSerial;
+  final String className;
+}
+
 /// Model class representing an installed Android application.
 class AppInfo {
   final String name;
   final String packageName;
+  final String instanceId;
+  final int userSerial;
+  final String className;
   final Uint8List icon;
 
   const AppInfo({
     required this.name,
     required this.packageName,
+    this.instanceId = '',
+    this.userSerial = 0,
+    this.className = '',
     required this.icon,
   });
+
+  String get instanceKey => buildAppIdentityKey(
+    packageName: packageName,
+    instanceId: instanceId,
+    userSerial: userSerial,
+    className: className,
+  );
+
+  Map<String, dynamic> toChannelMap() {
+    return {
+      'packageName': packageName,
+      'instanceId': instanceId,
+      'userSerial': userSerial,
+      'className': className,
+    };
+  }
+
+  AppInfo copyWith({
+    String? name,
+    String? packageName,
+    String? instanceId,
+    int? userSerial,
+    String? className,
+    Uint8List? icon,
+  }) {
+    return AppInfo(
+      name: name ?? this.name,
+      packageName: packageName ?? this.packageName,
+      instanceId: instanceId ?? this.instanceId,
+      userSerial: userSerial ?? this.userSerial,
+      className: className ?? this.className,
+      icon: icon ?? this.icon,
+    );
+  }
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is AppInfo &&
           runtimeType == other.runtimeType &&
-          packageName == other.packageName;
+          instanceKey == other.instanceKey;
 
   @override
-  int get hashCode => packageName.hashCode;
+  int get hashCode => instanceKey.hashCode;
 
   @override
-  String toString() => 'AppInfo(name: $name, package: $packageName)';
+  String toString() =>
+      'AppInfo(name: $name, package: $packageName, userSerial: $userSerial, instanceId: $instanceId, className: $className)';
 }

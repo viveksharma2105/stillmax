@@ -145,7 +145,7 @@ class _StillmaxSettingsScreenState
 
     final result = await ref
         .read(starredAppsProvider.notifier)
-        .toggleStarred(selected.packageName);
+        .toggleStarred(selected);
 
     if (!mounted) {
       return;
@@ -158,8 +158,8 @@ class _StillmaxSettingsScreenState
     }
   }
 
-  Future<void> _removeFavourite(String packageName) async {
-    await ref.read(starredAppsProvider.notifier).toggleStarred(packageName);
+  Future<void> _removeFavourite(AppInfo app) async {
+    await ref.read(starredAppsProvider.notifier).toggleStarred(app);
   }
 
   Future<void> _updateClockStyle(String style) async {
@@ -208,8 +208,10 @@ class _StillmaxSettingsScreenState
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.glassDark,
-        title: const Text('Reset Wallpaper'),
-        content: const Text('Remove custom wallpaper and use default?'),
+        title: const Text('Reset wallpaper override?'),
+        content: const Text(
+          'This clears the Stillmax wallpaper override and uses Android default wallpaper behavior.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -217,7 +219,7 @@ class _StillmaxSettingsScreenState
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Reset'),
+            child: const Text('Clear Override'),
           ),
         ],
       ),
@@ -231,11 +233,34 @@ class _StillmaxSettingsScreenState
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Wallpaper reset to default')),
+        const SnackBar(
+          content: Text('Wallpaper override cleared. Using Android default.'),
+        ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to reset wallpaper')),
+      );
+    }
+  }
+
+  Future<void> _makeWallpaperDefault() async {
+    final notifier = ref.read(wallpaperNotifierProvider);
+    final success = await notifier.resetWallpaper();
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Set to Android default wallpaper behavior.'),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to apply Android default behavior'),
+        ),
       );
     }
   }
@@ -308,7 +333,7 @@ class _StillmaxSettingsScreenState
     final starredPackages = ref.watch(starredAppsProvider);
     final apps = ref.watch(displayAppsProvider);
     final starredApps = apps
-        .where((app) => starredPackages.contains(app.packageName))
+        .where((app) => identityCollectionContainsApp(starredPackages, app))
         .toList(growable: false);
 
     return Scaffold(
@@ -403,8 +428,7 @@ class _StillmaxSettingsScreenState
                             Icons.delete_outline,
                             color: AppColors.error,
                           ),
-                          onPressed: () =>
-                              unawaited(_removeFavourite(app.packageName)),
+                          onPressed: () => unawaited(_removeFavourite(app)),
                         ),
                       ],
                     ),
@@ -425,7 +449,7 @@ class _StillmaxSettingsScreenState
               // Wallpaper Section
               _SectionTitle(title: 'Wallpaper', scale: scale),
               Text(
-                'Set custom background for launcher',
+                'Use a Stillmax wallpaper override, or follow Android default wallpaper behavior',
                 style: AppTypography.bodySmall.copyWith(
                   color: AppColors.onSurfaceVariant,
                   fontSize: 12 * scale,
@@ -440,15 +464,15 @@ class _StillmaxSettingsScreenState
                     child: ElevatedButton.icon(
                       onPressed: () => unawaited(_pickWallpaper()),
                       icon: const Icon(Icons.photo_library),
-                      label: const Text('Pick from Gallery'),
+                      label: const Text('Replace Wallpaper'),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () => unawaited(_resetWallpaper()),
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Reset'),
+                      onPressed: () => unawaited(_makeWallpaperDefault()),
+                      icon: const Icon(Icons.wallpaper),
+                      label: const Text('Make Default'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.surfaceContainerHigh
                             .withValues(alpha: 0.42),
@@ -456,6 +480,15 @@ class _StillmaxSettingsScreenState
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: () => unawaited(_resetWallpaper()),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Reset/Clear Stillmax Override'),
+                ),
               ),
               const SizedBox(height: 32),
 
@@ -717,7 +750,7 @@ class _WallpaperPreview extends ConsumerWidget {
             color: AppColors.onSurfaceVariant.withValues(alpha: 0.5),
           ),
         ),
-        error: (_, __) => Center(
+        error: (_, errorTrace) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -1037,9 +1070,9 @@ class _AppPickerSheetState extends ConsumerState<_AppPickerSheet> {
     final filteredApps = widget.apps
         .where((app) {
           if (_searchQuery.isEmpty) {
-            return !widget.currentStarred.contains(app.packageName);
+            return !identityCollectionContainsApp(widget.currentStarred, app);
           }
-          return !widget.currentStarred.contains(app.packageName) &&
+          return !identityCollectionContainsApp(widget.currentStarred, app) &&
               app.name.toLowerCase().contains(_searchQuery.toLowerCase());
         })
         .toList(growable: false);

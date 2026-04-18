@@ -14,6 +14,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.LauncherActivityInfo;
+import android.content.pm.LauncherApps;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.Resources;
@@ -33,7 +35,11 @@ import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Looper;
+import android.os.Process;
+import android.os.UserHandle;
+import android.os.UserManager;
 import android.provider.Settings;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.TextView;
@@ -50,13 +56,13 @@ import com.google.android.gms.location.Priority;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Locale;
+import java.util.Set;
 
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
@@ -73,7 +79,12 @@ public class MainActivity extends FlutterActivity {
     private static final int APP_WIDGET_HOST_ID = 1024;
     private static final int REQUEST_BIND_APPWIDGET = 7101;
     private static final int REQUEST_CONFIGURE_APPWIDGET = 7102;
+    private static final int REQUEST_POST_NOTIFICATIONS = 7103;
     private static final int INVALID_APP_WIDGET_ID = -1;
+    private static final int WALLPAPER_PREVIEW_MAX_DIMENSION = 1440;
+    private static final long MAX_LAST_LOCATION_AGE_MS = 2 * 60 * 1000L;
+    private static final float MAX_FINE_LOCATION_ACCURACY_METERS = 120f;
+    private static final float MAX_COARSE_LOCATION_ACCURACY_METERS = 3000f;
 
     private EventChannel.EventSink appEventsSink;
     private EventChannel.EventSink homeEventSink;
@@ -81,6 +92,7 @@ public class MainActivity extends FlutterActivity {
     private AppWidgetHost appWidgetHost;
     private AppWidgetManager appWidgetManager;
     private MethodChannel.Result pendingBindResult;
+    private MethodChannel.Result pendingNotificationPermissionResult;
     private int pendingWidgetId = INVALID_APP_WIDGET_ID;
     private AppWidgetProviderInfo pendingProviderInfo;
     private boolean widgetViewFactoryRegistered = false;
@@ -133,10 +145,10 @@ public class MainActivity extends FlutterActivity {
                             getInstalledApps(result);
                             break;
                         case "launchApp":
-                            launchApp(call.argument("packageName"), result);
+                            launchApp(call.arguments, result);
                             break;
                         case "launchAppHidden":
-                            launchAppHidden(call.argument("packageName"), result);
+                            launchAppHidden(call.arguments, result);
                             break;
                         case "setWallpaper":
                             setWallpaper(call.argument("imagePath"), result);
@@ -148,10 +160,13 @@ public class MainActivity extends FlutterActivity {
                             setWallpaperFromPath(call.argument("path"), result);
                             break;
                         case "openAppInfo":
-                            openAppInfo(call.argument("packageName"), result);
+                            openAppInfo(call.arguments, result);
                             break;
                         case "uninstallApp":
-                            uninstallApp(call.argument("packageName"), result);
+                            uninstallApp(call.arguments, result);
+                            break;
+                        case "resetWallpaperToDefault":
+                            resetWallpaperToDefault(result);
                             break;
                         case "expandStatusBar":
                             expandStatusBar(result);
@@ -230,11 +245,66 @@ public class MainActivity extends FlutterActivity {
                             startActivity(intent);
                             result.success(null);
                             break;
+                        case "requestNotificationPermission":
+                            requestNotificationPermission(result);
+                            break;
+                        case "isNotificationListenerEnabled":
+                            result.success(isNotificationListenerEnabled());
+                            break;
                         default:
                             result.notImplemented();
                             break;
                     }
                 });
+    }
+
+    private void requestNotificationPermission(MethodChannel.Result result) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            result.success(true);
+            return;
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED) {
+            result.success(true);
+            return;
+        }
+
+        if (pendingNotificationPermissionResult != null) {
+            result.error("PERMISSION_IN_PROGRESS", "Notification permission request already in progress", null);
+            return;
+        }
+
+        pendingNotificationPermissionResult = result;
+        requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQUEST_POST_NOTIFICATIONS);
+    }
+
+    private boolean isNotificationListenerEnabled() {
+        try {
+            String enabledListeners = Settings.Secure.getString(
+                    getContentResolver(),
+                    "enabled_notification_listeners"
+            );
+            if (enabledListeners == null || enabledListeners.trim().isEmpty()) {
+                return false;
+            }
+
+            String myPackage = getPackageName();
+            String[] listeners = enabledListeners.split(":");
+            for (String flattened : listeners) {
+                if (TextUtils.isEmpty(flattened)) {
+                    continue;
+                }
+
+                ComponentName componentName = ComponentName.unflattenFromString(flattened);
+                if (componentName != null && myPackage.equals(componentName.getPackageName())) {
+                    return true;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        return false;
     }
 
     private void getBatteryInfo(MethodChannel.Result result) {
@@ -329,6 +399,11 @@ public class MainActivity extends FlutterActivity {
                 payload.put("type", "packages_changed");
                 payload.put("action", action != null ? action : "");
                 payload.put("packageName", packageName != null ? packageName : "");
+
+                UserHandle changedUser = extractUserHandleFromIntent(intent);
+                if (changedUser != null) {
+                    payload.put("userSerial", getUserSerial(changedUser));
+                }
                 appEventsSink.success(payload);
             }
         };
@@ -371,11 +446,8 @@ public class MainActivity extends FlutterActivity {
             
             // First try to get last known location
             fusedClient.getLastLocation().addOnSuccessListener(location -> {
-                if (location != null && isLocationFresh(location)) {
-                    Map<String, Object> payload = new HashMap<>();
-                    payload.put("latitude", location.getLatitude());
-                    payload.put("longitude", location.getLongitude());
-                    result.success(payload);
+                if (isGoodLocation(location, hasFine)) {
+                    result.success(buildLocationPayload(location));
                 } else {
                     // Request fresh location with high accuracy
                     requestFreshLocation(fusedClient, hasFine, result);
@@ -390,9 +462,35 @@ public class MainActivity extends FlutterActivity {
     }
 
     private boolean isLocationFresh(Location location) {
-        // Consider location fresh if less than 5 minutes old
+        if (location == null) {
+            return false;
+        }
         long ageMs = System.currentTimeMillis() - location.getTime();
-        return ageMs < 5 * 60 * 1000;
+        return ageMs >= 0 && ageMs <= MAX_LAST_LOCATION_AGE_MS;
+    }
+
+    private boolean isLocationAccurateEnough(Location location, boolean hasFine) {
+        if (location == null || !location.hasAccuracy()) {
+            return true;
+        }
+
+        float threshold = hasFine
+                ? MAX_FINE_LOCATION_ACCURACY_METERS
+                : MAX_COARSE_LOCATION_ACCURACY_METERS;
+        return location.getAccuracy() <= threshold;
+    }
+
+    private boolean isGoodLocation(Location location, boolean hasFine) {
+        return location != null
+                && isLocationFresh(location)
+                && isLocationAccurateEnough(location, hasFine);
+    }
+
+    private Map<String, Object> buildLocationPayload(Location location) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("latitude", location.getLatitude());
+        payload.put("longitude", location.getLongitude());
+        return payload;
     }
 
     @SuppressLint("MissingPermission")
@@ -400,8 +498,8 @@ public class MainActivity extends FlutterActivity {
         try {
             LocationRequest request = new LocationRequest.Builder(
                     hasFine ? Priority.PRIORITY_HIGH_ACCURACY : Priority.PRIORITY_BALANCED_POWER_ACCURACY,
-                    1000
-            ).setMaxUpdates(1).setMaxUpdateDelayMillis(5000).build();
+                    800
+            ).setMaxUpdates(1).setMaxUpdateDelayMillis(2000).build();
 
             LocationCallback callback = new LocationCallback() {
                 @Override
@@ -409,10 +507,7 @@ public class MainActivity extends FlutterActivity {
                     client.removeLocationUpdates(this);
                     if (locationResult != null && locationResult.getLastLocation() != null) {
                         Location loc = locationResult.getLastLocation();
-                        Map<String, Object> payload = new HashMap<>();
-                        payload.put("latitude", loc.getLatitude());
-                        payload.put("longitude", loc.getLongitude());
-                        result.success(payload);
+                        result.success(buildLocationPayload(loc));
                     } else {
                         result.success(null);
                     }
@@ -718,26 +813,80 @@ public class MainActivity extends FlutterActivity {
         }
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == REQUEST_POST_NOTIFICATIONS) {
+            MethodChannel.Result callback = pendingNotificationPermissionResult;
+            pendingNotificationPermissionResult = null;
+            if (callback == null) {
+                return;
+            }
+
+            boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            callback.success(granted);
+        }
+    }
+
     private void getInstalledApps(MethodChannel.Result result) {
         try {
+            List<Map<String, Object>> appList = new ArrayList<>();
+
+            LauncherApps launcherApps = (LauncherApps) getSystemService(Context.LAUNCHER_APPS_SERVICE);
+            if (launcherApps != null) {
+                List<UserHandle> profiles = launcherApps.getProfiles();
+                if (profiles == null || profiles.isEmpty()) {
+                    profiles = new ArrayList<>();
+                    profiles.add(Process.myUserHandle());
+                }
+
+                for (UserHandle profile : profiles) {
+                    List<LauncherActivityInfo> activities = launcherApps.getActivityList(null, profile);
+                    for (LauncherActivityInfo info : activities) {
+                        ComponentName componentName = info.getComponentName();
+                        String packageName = componentName != null ? componentName.getPackageName() : null;
+                        String className = componentName != null ? componentName.getClassName() : null;
+                        if (packageName == null || packageName.trim().isEmpty()) {
+                            continue;
+                        }
+
+                        long userSerial = getUserSerial(info.getUser());
+                        String appName = info.getLabel() != null ? info.getLabel().toString() : packageName;
+                        String instanceId = buildInstanceId(packageName, className, userSerial);
+
+                        Drawable icon = info.getBadgedIcon(0);
+                        byte[] iconBytes = drawableToByteArray(icon);
+
+                        Map<String, Object> appData = new HashMap<>();
+                        appData.put("instanceId", instanceId);
+                        appData.put("packageName", packageName);
+                        appData.put("className", className != null ? className : "");
+                        appData.put("userSerial", userSerial);
+                        appData.put("name", appName);
+                        appData.put("appName", appName);
+                        appData.put("icon", iconBytes);
+                        appList.add(appData);
+                    }
+                }
+
+                result.success(appList);
+                return;
+            }
+
+            // Fallback for devices where LauncherApps is unavailable.
             PackageManager pm = getPackageManager();
             Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
             mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-
             List<ResolveInfo> resolveInfos = pm.queryIntentActivities(mainIntent, 0);
-            List<Map<String, Object>> appList = new ArrayList<>();
-            Set<String> seenPackages = new HashSet<>();
-
+            long currentSerial = getUserSerial(Process.myUserHandle());
             for (ResolveInfo resolveInfo : resolveInfos) {
                 ApplicationInfo appInfo = resolveInfo.activityInfo.applicationInfo;
                 String packageName = appInfo.packageName;
+                String className = resolveInfo.activityInfo != null ? resolveInfo.activityInfo.name : "";
                 if (packageName == null || packageName.trim().isEmpty()) {
                     continue;
                 }
-                if (seenPackages.contains(packageName)) {
-                    continue;
-                }
-                seenPackages.add(packageName);
 
                 String appName = resolveInfo.loadLabel(pm).toString();
                 if (appName == null || appName.trim().isEmpty()) {
@@ -748,9 +897,12 @@ public class MainActivity extends FlutterActivity {
                 byte[] iconBytes = drawableToByteArray(icon);
 
                 Map<String, Object> appData = new HashMap<>();
+                appData.put("instanceId", buildInstanceId(packageName, className, currentSerial));
+                appData.put("packageName", packageName);
+                appData.put("className", className);
+                appData.put("userSerial", currentSerial);
                 appData.put("name", appName);
                 appData.put("appName", appName);
-                appData.put("packageName", packageName);
                 appData.put("icon", iconBytes);
                 appList.add(appData);
             }
@@ -761,47 +913,81 @@ public class MainActivity extends FlutterActivity {
         }
     }
 
-    private void launchApp(String packageName, MethodChannel.Result result) {
+    private void launchApp(Object arguments, MethodChannel.Result result) {
+        launchAppInternal(arguments, false, result);
+    }
+
+    private void launchAppHidden(Object arguments, MethodChannel.Result result) {
+        launchAppInternal(arguments, true, result);
+    }
+
+    private void launchAppInternal(Object arguments, boolean hiddenFlagsForFallback, MethodChannel.Result result) {
         try {
+            AppTarget target = parseAppTarget(arguments);
+            String packageName = target.packageName;
             if (packageName == null || packageName.trim().isEmpty()) {
                 result.error("INVALID_ARGUMENT", "Package name is required", null);
                 return;
             }
-            PackageManager pm = getPackageManager();
-            Intent launchIntent = pm.getLaunchIntentForPackage(packageName);
 
-            if (launchIntent != null) {
-                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(launchIntent);
-                result.success(true);
-            } else {
-                result.error("APP_NOT_FOUND", "No launch intent found for package: " + packageName, null);
+            UserHandle userHandle = resolveUserHandle(target.userSerial);
+            LauncherApps launcherApps = (LauncherApps) getSystemService(Context.LAUNCHER_APPS_SERVICE);
+
+            if (launcherApps != null && userHandle != null) {
+                ComponentName componentName = resolveLauncherComponent(launcherApps, target, userHandle);
+                if (componentName != null) {
+                    launcherApps.startMainActivity(componentName, userHandle, null, null);
+                    result.success(true);
+                    return;
+                }
             }
+
+            // Fallback keeps backward compatibility for package-only payloads.
+            PackageManager pm = getPackageManager();
+            Intent launchIntent = buildFallbackLaunchIntent(pm, target);
+            if (launchIntent == null) {
+                result.error("APP_NOT_FOUND", "No launch intent found for package: " + packageName, null);
+                return;
+            }
+            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            if (hiddenFlagsForFallback) {
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+            }
+            startActivity(launchIntent);
+            result.success(true);
         } catch (Exception e) {
             result.error("LAUNCH_ERROR", "Failed to launch app: " + e.getMessage(), null);
         }
     }
 
-    private void launchAppHidden(String packageName, MethodChannel.Result result) {
-        try {
-            if (packageName == null || packageName.trim().isEmpty()) {
-                result.error("INVALID_ARGUMENT", "Package name is required", null);
-                return;
-            }
-            PackageManager pm = getPackageManager();
-            Intent launchIntent = pm.getLaunchIntentForPackage(packageName);
+    private Intent buildFallbackLaunchIntent(PackageManager pm, AppTarget target) {
+        if (target.className != null && !target.className.trim().isEmpty()) {
+            Intent explicit = new Intent(Intent.ACTION_MAIN);
+            explicit.addCategory(Intent.CATEGORY_LAUNCHER);
+            explicit.setComponent(new ComponentName(target.packageName, target.className));
+            return explicit;
+        }
+        return pm.getLaunchIntentForPackage(target.packageName);
+    }
 
-            if (launchIntent != null) {
-                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                launchIntent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
-                launchIntent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-                startActivity(launchIntent);
-                result.success(true);
+    private void resetWallpaperToDefault(MethodChannel.Result result) {
+        try {
+            WallpaperManager wallpaperManager = WallpaperManager.getInstance(getApplicationContext());
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                wallpaperManager.clear(WallpaperManager.FLAG_SYSTEM);
+                try {
+                    wallpaperManager.clear(WallpaperManager.FLAG_LOCK);
+                } catch (Exception ignored) {
+                    // Some devices may not support lock wallpaper clear separately.
+                }
             } else {
-                result.error("APP_NOT_FOUND", "No launch intent found for package: " + packageName, null);
+                wallpaperManager.clear();
             }
-        } catch (Exception e) {
-            result.error("LAUNCH_ERROR", "Failed to launch app: " + e.getMessage(), null);
+            safeForgetLoadedWallpaper(wallpaperManager);
+            result.success(true);
+        } catch (IOException e) {
+            result.error("WALLPAPER_RESET_ERROR", "Failed to reset wallpaper: " + e.getMessage(), null);
         }
     }
 
@@ -825,19 +1011,39 @@ public class MainActivity extends FlutterActivity {
                 return;
             }
 
-            wallpaperManager.setBitmap(bitmap);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                wallpaperManager.setBitmap(bitmap, null, true, WallpaperManager.FLAG_SYSTEM);
+            } else {
+                wallpaperManager.setBitmap(bitmap);
+            }
+            safeForgetLoadedWallpaper(wallpaperManager);
             result.success(true);
         } catch (Exception e) {
             result.error("WALLPAPER_ERROR", "Failed to set wallpaper: " + e.getMessage(), null);
         }
     }
 
-    private void openAppInfo(String packageName, MethodChannel.Result result) {
+    private void openAppInfo(Object arguments, MethodChannel.Result result) {
         try {
+            AppTarget target = parseAppTarget(arguments);
+            String packageName = target.packageName;
             if (packageName == null || packageName.trim().isEmpty()) {
                 result.error("INVALID_ARGUMENT", "Package name is required", null);
                 return;
             }
+
+            UserHandle userHandle = resolveUserHandle(target.userSerial);
+            LauncherApps launcherApps = (LauncherApps) getSystemService(Context.LAUNCHER_APPS_SERVICE);
+            if (launcherApps != null && userHandle != null) {
+                ComponentName componentName = resolveLauncherComponent(launcherApps, target, userHandle);
+                if (componentName != null) {
+                    launcherApps.startAppDetailsActivity(componentName, userHandle, null, null);
+                    result.success(true);
+                    return;
+                }
+            }
+
+            // Fallback opens details for the package in current user context.
             Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
             intent.setData(Uri.parse("package:" + packageName));
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -848,20 +1054,158 @@ public class MainActivity extends FlutterActivity {
         }
     }
 
-    private void uninstallApp(String packageName, MethodChannel.Result result) {
+    private void uninstallApp(Object arguments, MethodChannel.Result result) {
         try {
+            AppTarget target = parseAppTarget(arguments);
+            String packageName = target.packageName;
             if (packageName == null || packageName.trim().isEmpty()) {
                 result.error("INVALID_ARGUMENT", "Package name is required", null);
                 return;
             }
+
             Intent intent = new Intent(Intent.ACTION_DELETE);
             intent.setData(Uri.parse("package:" + packageName));
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+            // Best-effort profile hint; may be ignored by OEM/system UI on some devices.
+            UserHandle userHandle = resolveUserHandle(target.userSerial);
+            if (userHandle != null) {
+                intent.putExtra("android.intent.extra.USER", userHandle);
+            }
+
             startActivity(intent);
             result.success(true);
         } catch (Exception e) {
             result.error("UNINSTALL_ERROR", "Failed to uninstall app: " + e.getMessage(), null);
         }
+    }
+
+    private ComponentName resolveLauncherComponent(LauncherApps launcherApps, AppTarget target, UserHandle userHandle) {
+        if (target.className != null && !target.className.trim().isEmpty()) {
+            return new ComponentName(target.packageName, target.className);
+        }
+        List<LauncherActivityInfo> activities = launcherApps.getActivityList(target.packageName, userHandle);
+        if (activities != null && !activities.isEmpty()) {
+            return activities.get(0).getComponentName();
+        }
+        return null;
+    }
+
+    private String buildInstanceId(String packageName, String className, long userSerial) {
+        String safeClass = className != null ? className : "";
+        return packageName + "|" + safeClass + "|" + userSerial;
+    }
+
+    private long getUserSerial(UserHandle userHandle) {
+        if (userHandle == null) {
+            return -1L;
+        }
+        UserManager userManager = (UserManager) getSystemService(Context.USER_SERVICE);
+        if (userManager == null) {
+            return -1L;
+        }
+        return userManager.getSerialNumberForUser(userHandle);
+    }
+
+    private UserHandle resolveUserHandle(Long userSerial) {
+        if (userSerial == null) {
+            return Process.myUserHandle();
+        }
+
+        UserManager userManager = (UserManager) getSystemService(Context.USER_SERVICE);
+        if (userManager == null) {
+            return Process.myUserHandle();
+        }
+
+        List<UserHandle> profiles = userManager.getUserProfiles();
+        for (UserHandle profile : profiles) {
+            if (userManager.getSerialNumberForUser(profile) == userSerial) {
+                return profile;
+            }
+        }
+        return Process.myUserHandle();
+    }
+
+    private UserHandle extractUserHandleFromIntent(Intent intent) {
+        if (intent == null) {
+            return null;
+        }
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                return intent.getParcelableExtra("android.intent.extra.USER", UserHandle.class);
+            }
+            Object maybeUser = intent.getParcelableExtra("android.intent.extra.USER");
+            if (maybeUser instanceof UserHandle) {
+                return (UserHandle) maybeUser;
+            }
+        } catch (Exception ignored) {
+        }
+
+        int uid = intent.getIntExtra(Intent.EXTRA_UID, -1);
+        if (uid != -1 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            try {
+                return UserHandle.getUserHandleForUid(uid);
+            } catch (Exception ignored) {
+            }
+        }
+        return null;
+    }
+
+    private AppTarget parseAppTarget(Object arguments) {
+        AppTarget target = new AppTarget();
+        if (arguments instanceof String) {
+            target.packageName = (String) arguments;
+            return target;
+        }
+        if (!(arguments instanceof Map)) {
+            return target;
+        }
+
+        Map<?, ?> map = (Map<?, ?>) arguments;
+        target.instanceId = stringValue(map.get("instanceId"));
+        target.packageName = stringValue(map.get("packageName"));
+        target.className = stringValue(map.get("className"));
+        target.userSerial = longValue(map.get("userSerial"));
+
+        if ((target.packageName == null || target.packageName.trim().isEmpty()) && target.instanceId != null) {
+            String[] parts = target.instanceId.split("\\|", -1);
+            if (parts.length >= 1 && parts[0] != null && !parts[0].trim().isEmpty()) {
+                target.packageName = parts[0];
+            }
+            if ((target.className == null || target.className.trim().isEmpty()) && parts.length >= 2) {
+                target.className = parts[1];
+            }
+            if (target.userSerial == null && parts.length >= 3) {
+                target.userSerial = longValue(parts[2]);
+            }
+        }
+
+        return target;
+    }
+
+    private String stringValue(Object value) {
+        return value != null ? String.valueOf(value) : null;
+    }
+
+    private Long longValue(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        try {
+            return Long.parseLong(String.valueOf(value));
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static class AppTarget {
+        String instanceId;
+        String packageName;
+        String className;
+        Long userSerial;
     }
 
     private void expandStatusBar(MethodChannel.Result result) {
@@ -904,19 +1248,55 @@ public class MainActivity extends FlutterActivity {
     private void getWallpaperBytes(MethodChannel.Result result) {
         try {
             WallpaperManager wallpaperManager = WallpaperManager.getInstance(getApplicationContext());
-            Drawable drawable = wallpaperManager.getDrawable();
+            Drawable drawable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
+                    ? wallpaperManager.getDrawable(WallpaperManager.FLAG_SYSTEM)
+                    : wallpaperManager.getDrawable();
             if (drawable == null) {
                 result.success(null);
                 return;
             }
 
             Bitmap bitmap = drawableToBitmap(drawable);
+            Bitmap normalized = normalizeWallpaperBitmap(bitmap);
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream);
+            normalized.compress(Bitmap.CompressFormat.JPEG, 80, stream);
             result.success(stream.toByteArray());
         } catch (Exception e) {
             result.error("WALLPAPER_FETCH_ERROR", "Failed to fetch wallpaper bytes: " + e.getMessage(), null);
         }
+    }
+
+    private void safeForgetLoadedWallpaper(WallpaperManager wallpaperManager) {
+        try {
+            wallpaperManager.forgetLoadedWallpaper();
+        } catch (Exception ignored) {
+        }
+    }
+
+    private Bitmap normalizeWallpaperBitmap(Bitmap bitmap) {
+        Bitmap working = bitmap;
+
+        if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && working.getConfig() == Bitmap.Config.HARDWARE)
+                || working.getConfig() == null) {
+            Bitmap copy = working.copy(Bitmap.Config.ARGB_8888, false);
+            if (copy != null) {
+                working = copy;
+            }
+        }
+
+        int width = working.getWidth();
+        int height = working.getHeight();
+        int longest = Math.max(width, height);
+
+        if (longest <= 0 || longest <= WALLPAPER_PREVIEW_MAX_DIMENSION) {
+            return working;
+        }
+
+        float scale = (float) WALLPAPER_PREVIEW_MAX_DIMENSION / (float) longest;
+        int targetW = Math.max(1, Math.round(width * scale));
+        int targetH = Math.max(1, Math.round(height * scale));
+
+        return Bitmap.createScaledBitmap(working, targetW, targetH, true);
     }
 
     private void getNotificationPackages(MethodChannel.Result result) {

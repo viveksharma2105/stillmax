@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,6 +35,7 @@ class WeatherInfo {
 
 String? _cachedLocationName;
 DateTime? _cachedLocationNameAt;
+LatLng? _cachedLocation;
 
 final weatherInfoProvider = StreamProvider.autoDispose<WeatherInfo?>((
   ref,
@@ -146,17 +148,19 @@ Future<String> _getCityName(
   Map<String, dynamic> payload,
 ) async {
   final now = DateTime.now();
-  if (_cachedLocationName != null && _cachedLocationNameAt != null) {
-    if (now.difference(_cachedLocationNameAt!) < const Duration(hours: 1)) {
-      return _cachedLocationName!;
+
+  if (_cachedLocation != null && location != null) {
+    final movedKm = _distanceKm(_cachedLocation!, location);
+    if (movedKm > 1.5) {
+      _cachedLocationName = null;
+      _cachedLocationNameAt = null;
     }
   }
 
-  final cached = _extractCity(payload);
-  if (cached != null && cached.isNotEmpty) {
-    _cachedLocationName = cached;
-    _cachedLocationNameAt = now;
-    return cached;
+  if (_cachedLocationName != null && _cachedLocationNameAt != null) {
+    if (now.difference(_cachedLocationNameAt!) < const Duration(minutes: 20)) {
+      return _cachedLocationName!;
+    }
   }
 
   if (location != null) {
@@ -166,14 +170,39 @@ Future<String> _getCityName(
     );
     final city = resolved?.trim();
     if (city != null && city.isNotEmpty && city.toLowerCase() != 'unknown') {
+      _cachedLocation = location;
       _cachedLocationName = city;
       _cachedLocationNameAt = now;
       return city;
     }
   }
 
+  final cached = _extractCity(payload);
+  if (cached != null && cached.isNotEmpty) {
+    _cachedLocation = location;
+    _cachedLocationName = cached;
+    _cachedLocationNameAt = now;
+    return cached;
+  }
+
   return _cachedLocationName ?? 'Current';
 }
+
+double _distanceKm(LatLng a, LatLng b) {
+  const earthRadiusKm = 6371.0;
+  final dLat = _degToRad(b.latitude - a.latitude);
+  final dLon = _degToRad(b.longitude - a.longitude);
+  final lat1 = _degToRad(a.latitude);
+  final lat2 = _degToRad(b.latitude);
+
+  final h =
+      math.pow(math.sin(dLat / 2), 2) +
+      math.cos(lat1) * math.cos(lat2) * math.pow(math.sin(dLon / 2), 2);
+  final c = 2 * math.atan2(math.sqrt(h), math.sqrt(1 - h));
+  return earthRadiusKm * c;
+}
+
+double _degToRad(double degrees) => degrees * (math.pi / 180.0);
 
 Future<Map<String, dynamic>?> _fetchWttrPayload(LatLng? location) async {
   final uri = location == null

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
@@ -11,6 +12,37 @@ import '../services/app_service.dart';
 import '../theme/app_theme.dart';
 
 part 'app_list_provider.g.dart';
+
+String appIdentityKey(AppInfo app) => app.instanceKey;
+
+bool storedKeyMatchesApp(String storedKey, AppInfo app) {
+  return storedKey == appIdentityKey(app) || storedKey == app.packageName;
+}
+
+bool identityCollectionContainsApp(Iterable<String> storedKeys, AppInfo app) {
+  for (final key in storedKeys) {
+    if (storedKeyMatchesApp(key, app)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+AppInfo appInfoFromDbRow({
+  required String storedIdentity,
+  required String name,
+  required List<int> icon,
+}) {
+  final parts = parseAppIdentityKey(storedIdentity);
+  return AppInfo(
+    name: name,
+    packageName: parts.packageName,
+    instanceId: parts.instanceId,
+    userSerial: parts.userSerial,
+    className: parts.className,
+    icon: Uint8List.fromList(icon),
+  );
+}
 
 enum GridColumnCount { three, four, five }
 
@@ -308,9 +340,86 @@ final nowProvider = StreamProvider<DateTime>((ref) async* {
   }
 });
 
+const _wallpaperOverrideFileName = 'stillmax_wallpaper_override.jpg';
+
+Future<File> _wallpaperOverrideFile() async {
+  final dir = await getApplicationDocumentsDirectory();
+  return File('${dir.path}/$_wallpaperOverrideFileName');
+}
+
+Future<Uint8List?> _loadWallpaperOverrideBytes() async {
+  try {
+    final file = await _wallpaperOverrideFile();
+    if (!await file.exists()) {
+      return null;
+    }
+    final bytes = await file.readAsBytes();
+    if (bytes.isEmpty) {
+      return null;
+    }
+    return bytes;
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<bool> _saveWallpaperOverrideFromPath(String path) async {
+  try {
+    if (path.trim().isEmpty) {
+      return false;
+    }
+    final source = File(path);
+    if (!await source.exists()) {
+      return false;
+    }
+    final target = await _wallpaperOverrideFile();
+    await target.parent.create(recursive: true);
+    await source.copy(target.path);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+Future<void> _clearWallpaperOverrideFile() async {
+  try {
+    final file = await _wallpaperOverrideFile();
+    if (await file.exists()) {
+      await file.delete();
+    }
+  } catch (_) {
+    // Best-effort cleanup.
+  }
+}
+
 final wallpaperBytesProvider = FutureProvider<Uint8List?>((ref) async {
+  final overrideBytes = await _loadWallpaperOverrideBytes();
+  if (overrideBytes != null && overrideBytes.isNotEmpty) {
+    return overrideBytes;
+  }
+
   final service = ref.watch(appServiceProvider);
-  return service.getWallpaperBytes();
+
+  for (var attempt = 0; attempt < 3; attempt++) {
+    try {
+      final bytes = await service.getWallpaperBytes();
+      if (bytes != null && bytes.isNotEmpty) {
+        return bytes;
+      }
+
+      if (attempt == 2) {
+        return bytes;
+      }
+    } catch (_) {
+      if (attempt == 2) {
+        return null;
+      }
+    }
+
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+  }
+
+  return null;
 });
 
 final notificationProvider = StreamProvider<Set<String>>((ref) async* {
@@ -579,18 +688,33 @@ class StarredAppsNotifier extends Notifier<List<String>> {
     state = rows.map((row) => row.packageName).toList(growable: false);
   }
 
-  Future<StarredResult> toggleStarred(String packageName) async {
-    final normalized = packageName.trim();
+  Future<StarredResult> toggleStarred(AppInfo app) async {
+    final normalized = appIdentityKey(app).trim();
     if (normalized.isEmpty) return StarredResult.unchanged;
 
     final current = [...state];
     final isar = await ref.read(isarProvider.future);
 
-    if (current.contains(normalized)) {
-      current.remove(normalized);
+    int findStoredIndex() {
+      for (var i = 0; i < current.length; i++) {
+        if (storedKeyMatchesApp(current[i], app)) {
+          return i;
+        }
+      }
+      return -1;
+    }
+
+    final existingIndex = findStoredIndex();
+
+    if (existingIndex >= 0) {
+      final storedKey = current[existingIndex];
+      current.removeAt(existingIndex);
       state = current;
       await isar.writeTxn(() async {
-        await isar.starredAppDbs.deleteByPackageName(normalized);
+        await isar.starredAppDbs.deleteByPackageName(storedKey);
+        if (storedKey != normalized) {
+          await isar.starredAppDbs.deleteByPackageName(normalized);
+        }
         for (var i = 0; i < current.length; i++) {
           final row = await isar.starredAppDbs.getByPackageName(current[i]);
           if (row == null || row.position == i) continue;
@@ -655,7 +779,7 @@ class HiddenAppsNotifier extends AsyncNotifier<List<HiddenAppDb>> {
     await isar.writeTxn(() async {
       await isar.hiddenAppDbs.putByPackageName(
         HiddenAppDb()
-          ..packageName = app.packageName
+          ..packageName = appIdentityKey(app)
           ..appName = app.name
           ..icon = app.icon,
       );
@@ -759,17 +883,14 @@ final displayAppsProvider = Provider<List<AppInfo>>((ref) {
   final hiddenPackages = hiddenApps.map((h) => h.packageName).toSet();
 
   return apps
-      .where((app) => !hiddenPackages.contains(app.packageName))
+      .where((app) => !identityCollectionContainsApp(hiddenPackages, app))
       .map((app) {
-        final custom = customNames[app.packageName];
+        final custom =
+            customNames[appIdentityKey(app)] ?? customNames[app.packageName];
         if (custom == null || custom.trim().isEmpty) {
           return app;
         }
-        return AppInfo(
-          name: custom,
-          packageName: app.packageName,
-          icon: app.icon,
-        );
+        return app.copyWith(name: custom);
       })
       .toList(growable: false);
 });
@@ -816,10 +937,10 @@ class AppListNotifier extends AsyncNotifier<List<AppInfo>> {
     final persisted = await isar.appInfoDbs.where().sortByPosition().findAll();
     return persisted
         .map(
-          (row) => AppInfo(
+          (row) => appInfoFromDbRow(
+            storedIdentity: row.packageName,
             name: row.appName,
-            packageName: row.packageName,
-            icon: Uint8List.fromList(row.icon),
+            icon: row.icon,
           ),
         )
         .toList(growable: false);
@@ -831,7 +952,7 @@ class AppListNotifier extends AsyncNotifier<List<AppInfo>> {
   ) {
     if (persisted.length != apps.length) return false;
     for (var i = 0; i < persisted.length; i++) {
-      if (persisted[i].packageName != apps[i].packageName ||
+      if (persisted[i].packageName != appIdentityKey(apps[i]) ||
           persisted[i].appName != apps[i].name) {
         return false;
       }
@@ -844,13 +965,14 @@ class AppListNotifier extends AsyncNotifier<List<AppInfo>> {
     final service = ref.read(appServiceProvider);
 
     final installedApps = await service.getInstalledApps();
-    final uniqueInstalledByPackage = <String, AppInfo>{};
+    final uniqueInstalledByIdentity = <String, AppInfo>{};
     for (final app in installedApps) {
       final packageName = app.packageName.trim();
-      if (packageName.isEmpty) continue;
-      uniqueInstalledByPackage.putIfAbsent(packageName, () => app);
+      final identity = appIdentityKey(app).trim();
+      if (packageName.isEmpty || identity.isEmpty) continue;
+      uniqueInstalledByIdentity.putIfAbsent(identity, () => app);
     }
-    final uniqueInstalledApps = uniqueInstalledByPackage.values.toList();
+    final uniqueInstalledApps = uniqueInstalledByIdentity.values.toList();
 
     final persisted = await isar.appInfoDbs.where().sortByPosition().findAll();
 
@@ -860,31 +982,31 @@ class AppListNotifier extends AsyncNotifier<List<AppInfo>> {
       return fallback;
     }
 
-    final installedByPackage = <String, AppInfo>{
-      for (final app in uniqueInstalledApps) app.packageName: app,
+    final installedByIdentity = <String, AppInfo>{
+      for (final app in uniqueInstalledApps) appIdentityKey(app): app,
     };
 
     final orderedApps = <AppInfo>[];
-    final seenPackages = <String>{};
+    final seenIdentities = <String>{};
 
     for (final persistedApp in persisted) {
-      final installed = installedByPackage[persistedApp.packageName];
+      final installed = installedByIdentity[persistedApp.packageName];
       if (installed != null) {
         orderedApps.add(installed);
-        seenPackages.add(installed.packageName);
+        seenIdentities.add(appIdentityKey(installed));
       }
     }
 
     for (final app in uniqueInstalledApps) {
-      if (!seenPackages.contains(app.packageName)) {
+      if (!seenIdentities.contains(appIdentityKey(app))) {
         orderedApps.add(app);
       }
     }
 
     final dedupedOrderedApps = <AppInfo>[];
-    final dedupedPackages = <String>{};
+    final dedupedIdentities = <String>{};
     for (final app in orderedApps) {
-      if (dedupedPackages.add(app.packageName)) {
+      if (dedupedIdentities.add(appIdentityKey(app))) {
         dedupedOrderedApps.add(app);
       }
     }
@@ -896,7 +1018,7 @@ class AppListNotifier extends AsyncNotifier<List<AppInfo>> {
           final app = dedupedOrderedApps[i];
           await isar.appInfoDbs.putByPackageName(
             AppInfoDb()
-              ..packageName = app.packageName
+              ..packageName = appIdentityKey(app)
               ..appName = app.name
               ..icon = app.icon
               ..position = i,
@@ -929,7 +1051,7 @@ class AppListNotifier extends AsyncNotifier<List<AppInfo>> {
         final app = current[i];
         final db = await isar.appInfoDbs
             .filter()
-            .packageNameEqualTo(app.packageName)
+            .packageNameEqualTo(appIdentityKey(app))
             .findFirst();
         if (db != null) {
           db.position = i;
@@ -958,10 +1080,10 @@ class DockAppsNotifier extends StateNotifier<List<AppInfo?>> {
     final next = List<AppInfo?>.filled(5, null, growable: false);
     for (final dock in persisted) {
       if (dock.position >= 0 && dock.position < 5) {
-        next[dock.position] = AppInfo(
+        next[dock.position] = appInfoFromDbRow(
+          storedIdentity: dock.packageName,
           name: dock.appName,
-          packageName: dock.packageName,
-          icon: Uint8List.fromList(dock.icon),
+          icon: dock.icon,
         );
       }
     }
@@ -973,7 +1095,7 @@ class DockAppsNotifier extends StateNotifier<List<AppInfo?>> {
 
     final next = [...state];
     for (var i = 0; i < next.length; i++) {
-      if (next[i]?.packageName == app.packageName) {
+      if (next[i] != null && appIdentityKey(next[i]!) == appIdentityKey(app)) {
         next[i] = null;
       }
     }
@@ -993,15 +1115,15 @@ class DockAppsNotifier extends StateNotifier<List<AppInfo?>> {
   }
 
   Future<void> syncWithInstalledApps(List<AppInfo> installedApps) async {
-    final installedByPackage = {
-      for (final app in installedApps) app.packageName: app,
+    final installedByIdentity = {
+      for (final app in installedApps) appIdentityKey(app): app,
     };
 
     final next = List<AppInfo?>.filled(5, null, growable: false);
     for (var i = 0; i < state.length; i++) {
       final docked = state[i];
       if (docked == null) continue;
-      next[i] = installedByPackage[docked.packageName];
+      next[i] = installedByIdentity[appIdentityKey(docked)];
     }
 
     if (_sameDock(state, next)) {
@@ -1015,7 +1137,9 @@ class DockAppsNotifier extends StateNotifier<List<AppInfo?>> {
   bool _sameDock(List<AppInfo?> a, List<AppInfo?> b) {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
-      if (a[i]?.packageName != b[i]?.packageName) {
+      final aKey = a[i] == null ? null : appIdentityKey(a[i]!);
+      final bKey = b[i] == null ? null : appIdentityKey(b[i]!);
+      if (aKey != bKey) {
         return false;
       }
     }
@@ -1026,13 +1150,13 @@ class DockAppsNotifier extends StateNotifier<List<AppInfo?>> {
     final isar = await ref.read(isarProvider.future);
     await isar.writeTxn(() async {
       await isar.dockApps.clear();
-      final seenPackages = <String>{};
+      final seenIdentities = <String>{};
       for (var i = 0; i < next.length; i++) {
         final app = next[i];
-        if (app == null || !seenPackages.add(app.packageName)) continue;
+        if (app == null || !seenIdentities.add(appIdentityKey(app))) continue;
         await isar.dockApps.putByPackageName(
           DockApp()
-            ..packageName = app.packageName
+            ..packageName = appIdentityKey(app)
             ..appName = app.name
             ..icon = app.icon
             ..position = i,
@@ -1051,24 +1175,32 @@ class WallpaperNotifier {
 
   final Ref ref;
 
+  Future<void> _refreshWallpaperWithRetry() async {
+    ref.invalidate(wallpaperBytesProvider);
+    try {
+      await ref.read(wallpaperBytesProvider.future);
+    } catch (_) {
+      // Ignore transient failures from native wallpaper provider.
+    }
+
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+    ref.invalidate(wallpaperBytesProvider);
+  }
+
   Future<bool> setWallpaperFromImagePath(String path) async {
-    final service = ref.read(appServiceProvider);
-    final result = await service.setWallpaperFromPath(path);
+    final result = await _saveWallpaperOverrideFromPath(path);
     if (result) {
-      // Invalidate the wallpaperBytesProvider to refresh the UI
-      ref.invalidate(wallpaperBytesProvider);
+      await _refreshWallpaperWithRetry();
     }
     return result;
   }
 
   Future<bool> resetWallpaper() async {
+    await _clearWallpaperOverrideFile();
+
     final service = ref.read(appServiceProvider);
-    // Pass empty string to reset/clear the wallpaper
-    final result = await service.setWallpaperFromPath('');
-    if (result) {
-      // Invalidate the wallpaperBytesProvider to refresh the UI
-      ref.invalidate(wallpaperBytesProvider);
-    }
+    final result = await service.resetWallpaperToDefault();
+    await _refreshWallpaperWithRetry();
     return result;
   }
 }

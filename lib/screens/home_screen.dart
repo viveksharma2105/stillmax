@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -109,6 +110,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final apps = ref.watch(displayAppsProvider);
     final starredPackages = ref.watch(starredAppsProvider);
+    final wallpaper = ref.watch(wallpaperBytesProvider).valueOrNull;
     final settings = ref.watch(settingsProvider).valueOrNull;
     final scale = settings?.fontScaleFactor ?? 1.0;
     final clockSpacing = (settings?.clockSpacing ?? 40.0).clamp(0.0, 200.0);
@@ -143,7 +145,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     if (_selectedLetter == '★') {
       displayedApps = apps
-          .where((app) => starredPackages.contains(app.packageName))
+          .where((app) => identityCollectionContainsApp(starredPackages, app))
           .toList();
       sectionTitle = 'FAVOURITES';
     } else {
@@ -165,8 +167,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       },
       child: Stack(
         children: [
+          Positioned.fill(
+            child: wallpaper != null && wallpaper.isNotEmpty
+                ? Image.memory(
+                    wallpaper,
+                    fit: BoxFit.cover,
+                    gaplessPlayback: true,
+                  )
+                : Container(color: const Color(0xFF090909)),
+          ),
+          Positioned.fill(child: Container(color: const Color(0x66000000))),
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+              child: const SizedBox.expand(),
+            ),
+          ),
           Scaffold(
-            backgroundColor: const Color(0xFF090909),
+            backgroundColor: Colors.transparent,
             body: GestureDetector(
               behavior: HitTestBehavior.translucent,
               onLongPress: () {
@@ -176,13 +194,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     builder: (_) => const StillmaxSettingsScreen(),
                   ),
                 );
-              },
-              onVerticalDragEnd: (details) {
-                // Swipe up = negative velocity (lowered threshold for easier trigger)
-                if (details.primaryVelocity != null &&
-                    details.primaryVelocity! < -100) {
-                  _openAppDrawer();
-                }
               },
               child: Column(
                 children: [
@@ -196,93 +207,110 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Expanded(
                     child: Stack(
                       children: [
-                        ListView(
-                          physics: const NeverScrollableScrollPhysics(),
-                          padding: EdgeInsets.zero,
-                          children: [
-                            SizedBox(height: favoritesSpacing),
+                        GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onVerticalDragEnd: (details) {
+                            // Only allow swipe-up drawer open while on Favourites view.
+                            if (_selectedLetter != '★') {
+                              return;
+                            }
 
-                            // Section header with crossfade transition
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                left: 16,
-                                top: 4,
-                                bottom: 2,
-                              ),
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 200),
-                                child: Row(
-                                  key: ValueKey(sectionTitle),
-                                  children: [
-                                    if (_selectedLetter == '★') ...[
-                                      Icon(
-                                        Icons.star,
-                                        color: AppColors.secondary,
-                                        size: 16,
-                                      ),
-                                      const SizedBox(width: 6),
-                                    ],
-                                    Text(
-                                      sectionTitle,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white.withValues(
-                                          alpha: 0.35,
-                                        ),
-                                        letterSpacing: 1.0,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                            if (details.primaryVelocity != null &&
+                                details.primaryVelocity! < -100) {
+                              _openAppDrawer();
+                            }
+                          },
+                          child: ListView(
+                            physics: const NeverScrollableScrollPhysics(),
+                            padding: EdgeInsets.zero,
+                            children: [
+                              SizedBox(height: favoritesSpacing),
 
-                            // App tiles
-                            if (displayedApps.isEmpty)
+                              // Section header with crossfade transition
                               Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
+                                padding: const EdgeInsets.only(
+                                  left: 16,
+                                  top: 4,
+                                  bottom: 2,
                                 ),
-                                child: Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.05),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    _selectedLetter == '★'
-                                        ? 'No favourites yet. Manage favourites in Stillmax Settings.'
-                                        : 'No apps starting with $_selectedLetter',
-                                    style: TextStyle(
-                                      fontSize: 12 * scale,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.45,
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 200),
+                                  child: Row(
+                                    key: ValueKey(sectionTitle),
+                                    children: [
+                                      if (_selectedLetter == '★') ...[
+                                        Icon(
+                                          Icons.star,
+                                          color: AppColors.secondary,
+                                          size: 16,
+                                        ),
+                                        const SizedBox(width: 6),
+                                      ],
+                                      Text(
+                                        sectionTitle,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white.withValues(
+                                            alpha: 0.35,
+                                          ),
+                                          letterSpacing: 1.0,
+                                        ),
                                       ),
-                                      fontStyle: FontStyle.italic,
-                                    ),
+                                    ],
                                   ),
                                 ),
-                              )
-                            else
-                              ...displayedApps.map(
-                                (app) => Padding(
+                              ),
+
+                              // App tiles
+                              if (displayedApps.isEmpty)
+                                Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                   ),
-                                  child: AppListTile(
-                                    app: app,
-                                    starred: starredPackages.contains(
-                                      app.packageName,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.05,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                    showDivider: false,
+                                    child: Text(
+                                      _selectedLetter == '★'
+                                          ? 'No favourites yet. Manage favourites in Stillmax Settings.'
+                                          : 'No apps starting with $_selectedLetter',
+                                      style: TextStyle(
+                                        fontSize: 12 * scale,
+                                        color: Colors.white.withValues(
+                                          alpha: 0.45,
+                                        ),
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              else
+                                ...displayedApps.map(
+                                  (app) => Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                    ),
+                                    child: AppListTile(
+                                      app: app,
+                                      starred: identityCollectionContainsApp(
+                                        starredPackages,
+                                        app,
+                                      ),
+                                      showDivider: false,
+                                    ),
                                   ),
                                 ),
-                              ),
 
-                            const SizedBox(height: 12),
-                            SizedBox(height: navBarHeight + 80),
-                          ],
+                              const SizedBox(height: 12),
+                              SizedBox(height: navBarHeight + 80),
+                            ],
+                          ),
                         ),
 
                         // Alphabet sidebar - stays pinned

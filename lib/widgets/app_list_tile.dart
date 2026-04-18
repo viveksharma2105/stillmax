@@ -32,7 +32,7 @@ class AppListTile extends ConsumerWidget {
       if (hapticsEnabled) {
         await HapticFeedback.selectionClick();
       }
-      await ref.read(appServiceProvider).launchApp(app.packageName);
+      await ref.read(appServiceProvider).launchApp(app);
     }
 
     Future<void> openMenu(LongPressStartDetails details) async {
@@ -65,10 +65,10 @@ class AppListTile extends ConsumerWidget {
           await launch();
           break;
         case 'app_info':
-          await ref.read(appServiceProvider).openAppInfo(app.packageName);
+          await ref.read(appServiceProvider).openAppInfo(app);
           break;
         case 'uninstall':
-          await ref.read(appServiceProvider).uninstallApp(app.packageName);
+          await ref.read(appServiceProvider).uninstallApp(app);
           break;
         default:
           break;

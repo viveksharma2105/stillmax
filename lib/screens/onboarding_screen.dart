@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../services/app_service.dart';
 import '../state/app_list_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
@@ -14,7 +15,9 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _controller = PageController();
+  final AppService _appService = AppService();
   int _page = 0;
+  bool _isAdvancing = false;
 
   @override
   void dispose() {
@@ -38,14 +41,80 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _next() async {
+    if (_isAdvancing) {
+      return;
+    }
+
+    setState(() => _isAdvancing = true);
+
+    if (_page == 2) {
+      await _requestMusicWidgetPermissions();
+    }
+
     if (_page >= 2) {
       await _finish();
+      if (mounted) {
+        setState(() => _isAdvancing = false);
+      }
       return;
     }
     await _controller.nextPage(
       duration: const Duration(milliseconds: 320),
       curve: Curves.easeOutCubic,
     );
+
+    if (mounted) {
+      setState(() => _isAdvancing = false);
+    }
+  }
+
+  Future<void> _requestMusicWidgetPermissions() async {
+    final notificationsGranted = await _appService
+        .requestNotificationPermission();
+    if (!mounted) {
+      return;
+    }
+
+    final listenerEnabled = await _appService.isNotificationListenerEnabled();
+    if (!mounted) {
+      return;
+    }
+
+    if (!listenerEnabled) {
+      final openSettings = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Enable media controls'),
+            content: const Text(
+              'Turn on notification access for Stillmax so the music widget can show current track and controls.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Later'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Open Settings'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (openSettings == true) {
+        await _appService.openNotificationListenerSettings();
+      }
+    } else if (!notificationsGranted && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Notification permission is off. Music controls may be limited.',
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -122,7 +191,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: _next,
+                        onPressed: _isAdvancing ? null : _next,
                         child: Text(_page == 2 ? 'Start' : 'Continue'),
                       ),
                     ),

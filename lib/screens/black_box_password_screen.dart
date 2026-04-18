@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../services/app_service.dart';
 import '../state/app_list_provider.dart';
 import '../theme/app_theme.dart';
 import 'black_box_vault_screen.dart';
