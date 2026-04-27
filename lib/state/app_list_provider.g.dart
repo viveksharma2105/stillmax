@@ -2054,18 +2054,23 @@ const SettingsDbSchema = CollectionSchema(
       name: r'showRecents',
       type: IsarType.bool,
     ),
-    r'sidebarHorizontalOffset': PropertySchema(
+    r'showWeatherWidget': PropertySchema(
       id: 18,
+      name: r'showWeatherWidget',
+      type: IsarType.bool,
+    ),
+    r'sidebarHorizontalOffset': PropertySchema(
+      id: 19,
       name: r'sidebarHorizontalOffset',
       type: IsarType.double,
     ),
     r'sidebarSpacing': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'sidebarSpacing',
       type: IsarType.double,
     ),
     r'swipeLeftAction': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'swipeLeftAction',
       type: IsarType.long,
     )
@@ -2118,9 +2123,10 @@ void _settingsDbSerialize(
   writer.writeBool(offsets[15], object.showDockLabels);
   writer.writeBool(offsets[16], object.showLabels);
   writer.writeBool(offsets[17], object.showRecents);
-  writer.writeDouble(offsets[18], object.sidebarHorizontalOffset);
-  writer.writeDouble(offsets[19], object.sidebarSpacing);
-  writer.writeLong(offsets[20], object.swipeLeftAction);
+  writer.writeBool(offsets[18], object.showWeatherWidget);
+  writer.writeDouble(offsets[19], object.sidebarHorizontalOffset);
+  writer.writeDouble(offsets[20], object.sidebarSpacing);
+  writer.writeLong(offsets[21], object.swipeLeftAction);
 }
 
 SettingsDb _settingsDbDeserialize(
@@ -2149,9 +2155,10 @@ SettingsDb _settingsDbDeserialize(
   object.showDockLabels = reader.readBool(offsets[15]);
   object.showLabels = reader.readBool(offsets[16]);
   object.showRecents = reader.readBool(offsets[17]);
-  object.sidebarHorizontalOffset = reader.readDouble(offsets[18]);
-  object.sidebarSpacing = reader.readDouble(offsets[19]);
-  object.swipeLeftAction = reader.readLong(offsets[20]);
+  object.showWeatherWidget = reader.readBool(offsets[18]);
+  object.sidebarHorizontalOffset = reader.readDouble(offsets[19]);
+  object.sidebarSpacing = reader.readDouble(offsets[20]);
+  object.swipeLeftAction = reader.readLong(offsets[21]);
   return object;
 }
 
@@ -2199,10 +2206,12 @@ P _settingsDbDeserializeProp<P>(
     case 17:
       return (reader.readBool(offset)) as P;
     case 18:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 19:
       return (reader.readDouble(offset)) as P;
     case 20:
+      return (reader.readDouble(offset)) as P;
+    case 21:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -3315,6 +3324,16 @@ extension SettingsDbQueryFilter
   }
 
   QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
+      showWeatherWidgetEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'showWeatherWidget',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterFilterCondition>
       sidebarHorizontalOffsetEqualTo(
     double value, {
     double epsilon = Query.epsilon,
@@ -3734,6 +3753,19 @@ extension SettingsDbQuerySortBy
     });
   }
 
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> sortByShowWeatherWidget() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'showWeatherWidget', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy>
+      sortByShowWeatherWidgetDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'showWeatherWidget', Sort.desc);
+    });
+  }
+
   QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy>
       sortBySidebarHorizontalOffset() {
     return QueryBuilder.apply(this, (query) {
@@ -4012,6 +4044,19 @@ extension SettingsDbQuerySortThenBy
     });
   }
 
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy> thenByShowWeatherWidget() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'showWeatherWidget', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy>
+      thenByShowWeatherWidgetDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'showWeatherWidget', Sort.desc);
+    });
+  }
+
   QueryBuilder<SettingsDb, SettingsDb, QAfterSortBy>
       thenBySidebarHorizontalOffset() {
     return QueryBuilder.apply(this, (query) {
@@ -4166,6 +4211,13 @@ extension SettingsDbQueryWhereDistinct
   }
 
   QueryBuilder<SettingsDb, SettingsDb, QDistinct>
+      distinctByShowWeatherWidget() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'showWeatherWidget');
+    });
+  }
+
+  QueryBuilder<SettingsDb, SettingsDb, QDistinct>
       distinctBySidebarHorizontalOffset() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'sidebarHorizontalOffset');
@@ -4299,6 +4351,12 @@ extension SettingsDbQueryProperty
   QueryBuilder<SettingsDb, bool, QQueryOperations> showRecentsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'showRecents');
+    });
+  }
+
+  QueryBuilder<SettingsDb, bool, QQueryOperations> showWeatherWidgetProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'showWeatherWidget');
     });
   }
 

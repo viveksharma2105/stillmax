@@ -39,6 +39,7 @@ AppInfo appInfoFromDbRow({
     packageName: parts.packageName,
     instanceId: parts.instanceId,
     userSerial: parts.userSerial,
+    userUid: parts.userUid,
     className: parts.className,
     icon: Uint8List.fromList(icon),
   );
@@ -103,6 +104,7 @@ class SettingsDb {
   late int swipeLeftAction;
   late int pinchAction;
   late bool showRecents;
+  bool showWeatherWidget = true;
   late int iconShape; // 0=circle, 1=rounded, 2=teardrop, 3=squarish
   late double fontScaleFactor;
   late bool hapticsEnabled;
@@ -247,6 +249,7 @@ SettingsDb _defaultSettingsDb() {
     ..swipeLeftAction = 0
     ..pinchAction = 0
     ..showRecents = true
+    ..showWeatherWidget = true
     ..iconShape = 1
     ..fontScaleFactor = 1.0
     ..hapticsEnabled = true
@@ -341,10 +344,17 @@ final nowProvider = StreamProvider<DateTime>((ref) async* {
 });
 
 const _wallpaperOverrideFileName = 'stillmax_wallpaper_override.jpg';
+const _systemWallpaperCacheFileName = 'stillmax_system_wallpaper_cache.bin';
+const kMaxWallpaperBytes = 8 * 1024 * 1024;
 
 Future<File> _wallpaperOverrideFile() async {
   final dir = await getApplicationDocumentsDirectory();
   return File('${dir.path}/$_wallpaperOverrideFileName');
+}
+
+Future<File> _systemWallpaperCacheFile() async {
+  final dir = await getApplicationDocumentsDirectory();
+  return File('${dir.path}/$_systemWallpaperCacheFileName');
 }
 
 Future<Uint8List?> _loadWallpaperOverrideBytes() async {
@@ -354,12 +364,129 @@ Future<Uint8List?> _loadWallpaperOverrideBytes() async {
       return null;
     }
     final bytes = await file.readAsBytes();
-    if (bytes.isEmpty) {
+    if (bytes.isEmpty || bytes.length > kMaxWallpaperBytes) {
       return null;
     }
     return bytes;
   } catch (_) {
     return null;
+  }
+}
+
+Future<Uint8List?> _loadSystemWallpaperCacheBytes() async {
+  try {
+    final file = await _systemWallpaperCacheFile();
+    if (!await file.exists()) {
+      return null;
+    }
+    final bytes = await file.readAsBytes();
+    if (bytes.isEmpty || bytes.length > kMaxWallpaperBytes) {
+      return null;
+    }
+    return bytes;
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<void> _saveSystemWallpaperCacheBytes(Uint8List bytes) async {
+  try {
+    if (bytes.isEmpty || bytes.length > kMaxWallpaperBytes) {
+      return;
+    }
+    final file = await _systemWallpaperCacheFile();
+    await file.parent.create(recursive: true);
+    await file.writeAsBytes(bytes, flush: true);
+  } catch (_) {
+    // Best-effort cache write.
+  }
+}
+
+bool _sameBytes(Uint8List a, Uint8List b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+Uint8List? _asUint8List(dynamic value) {
+  if (value == null) return null;
+  if (value is Uint8List) return value;
+  if (value is List<int>) return Uint8List.fromList(value);
+  return null;
+}
+
+bool _sameOptionalBytes(Uint8List? a, Uint8List? b) {
+  if (a == null || b == null) return a == b;
+  return _sameBytes(a, b);
+}
+
+Map<String, dynamic>? _coerceMediaSessionPayload(
+  Map<String, dynamic>? payload,
+) {
+  if (payload == null) return null;
+
+  final albumArt = _asUint8List(payload['albumArt']);
+  if (payload['albumArt'] == albumArt) {
+    return payload;
+  }
+
+  final normalized = Map<String, dynamic>.from(payload);
+  if (albumArt == null) {
+    normalized.remove('albumArt');
+  } else {
+    normalized['albumArt'] = albumArt;
+  }
+  return normalized;
+}
+
+bool _sameMediaSessionPayload(
+  Map<String, dynamic>? previous,
+  Map<String, dynamic>? next,
+) {
+  if (identical(previous, next)) return true;
+  if (previous == null || next == null) return previous == next;
+
+  final sameMetadata =
+      (previous['trackName'] as String?) == (next['trackName'] as String?) &&
+      (previous['artistName'] as String?) == (next['artistName'] as String?) &&
+      (previous['packageName'] as String?) ==
+          (next['packageName'] as String?) &&
+      (previous['isPlaying'] as bool? ?? false) ==
+          (next['isPlaying'] as bool? ?? false) &&
+      (previous['error'] as String?) == (next['error'] as String?);
+
+  if (!sameMetadata) {
+    return false;
+  }
+
+  return _sameOptionalBytes(
+    _asUint8List(previous['albumArt']),
+    _asUint8List(next['albumArt']),
+  );
+}
+
+Future<void> _refreshSystemWallpaperCacheInBackground(
+  Ref ref,
+  Uint8List cachedBytes,
+) async {
+  try {
+    final service = ref.read(appServiceProvider);
+    final refreshed = await service.getWallpaperBytes();
+    if (refreshed == null ||
+        refreshed.isEmpty ||
+        refreshed.length > kMaxWallpaperBytes) {
+      return;
+    }
+    if (_sameBytes(cachedBytes, refreshed)) {
+      return;
+    }
+    await _saveSystemWallpaperCacheBytes(refreshed);
+    ref.invalidate(wallpaperBytesProvider);
+  } catch (_) {
+    // Best-effort background refresh.
   }
 }
 
@@ -393,33 +520,36 @@ Future<void> _clearWallpaperOverrideFile() async {
 }
 
 final wallpaperBytesProvider = FutureProvider<Uint8List?>((ref) async {
-  final overrideBytes = await _loadWallpaperOverrideBytes();
-  if (overrideBytes != null && overrideBytes.isNotEmpty) {
-    return overrideBytes;
-  }
-
-  final service = ref.watch(appServiceProvider);
-
-  for (var attempt = 0; attempt < 3; attempt++) {
-    try {
-      final bytes = await service.getWallpaperBytes();
-      if (bytes != null && bytes.isNotEmpty) {
-        return bytes;
-      }
-
-      if (attempt == 2) {
-        return bytes;
-      }
-    } catch (_) {
-      if (attempt == 2) {
-        return null;
-      }
+  try {
+    final overrideBytes = await _loadWallpaperOverrideBytes();
+    if (overrideBytes != null &&
+        overrideBytes.isNotEmpty &&
+        overrideBytes.length <= kMaxWallpaperBytes) {
+      return overrideBytes;
     }
 
-    await Future<void>.delayed(const Duration(milliseconds: 250));
-  }
+    final cachedSystemBytes = await _loadSystemWallpaperCacheBytes();
+    if (cachedSystemBytes != null &&
+        cachedSystemBytes.isNotEmpty &&
+        cachedSystemBytes.length <= kMaxWallpaperBytes) {
+      unawaited(
+        _refreshSystemWallpaperCacheInBackground(ref, cachedSystemBytes),
+      );
+      return cachedSystemBytes;
+    }
 
-  return null;
+    final service = ref.watch(appServiceProvider);
+    final bytes = await service.getWallpaperBytes();
+    if (bytes != null &&
+        bytes.isNotEmpty &&
+        bytes.length <= kMaxWallpaperBytes) {
+      await _saveSystemWallpaperCacheBytes(bytes);
+      return bytes;
+    }
+    return null;
+  } catch (_) {
+    return null;
+  }
 });
 
 final notificationProvider = StreamProvider<Set<String>>((ref) async* {
@@ -454,12 +584,23 @@ final mediaSessionProvider = StreamProvider<Map<String, dynamic>?>((
   ref,
 ) async* {
   final service = ref.watch(appServiceProvider);
+  Map<String, dynamic>? previousPayload;
+
   while (true) {
+    Map<String, dynamic>? nextPayload;
     try {
-      yield await service.getActiveMediaSession();
+      nextPayload = _coerceMediaSessionPayload(
+        await service.getActiveMediaSession(),
+      );
     } catch (_) {
-      yield null;
+      nextPayload = null;
     }
+
+    if (!_sameMediaSessionPayload(previousPayload, nextPayload)) {
+      previousPayload = nextPayload;
+      yield nextPayload;
+    }
+
     await Future<void>.delayed(const Duration(seconds: 2));
   }
 });
@@ -961,78 +1102,98 @@ class AppListNotifier extends AsyncNotifier<List<AppInfo>> {
   }
 
   Future<List<AppInfo>> refreshApps() async {
-    final isar = await ref.read(isarProvider.future);
-    final service = ref.read(appServiceProvider);
+    try {
+      final isar = await ref.read(isarProvider.future);
+      final service = ref.read(appServiceProvider);
 
-    final installedApps = await service.getInstalledApps();
-    final uniqueInstalledByIdentity = <String, AppInfo>{};
-    for (final app in installedApps) {
-      final packageName = app.packageName.trim();
-      final identity = appIdentityKey(app).trim();
-      if (packageName.isEmpty || identity.isEmpty) continue;
-      uniqueInstalledByIdentity.putIfAbsent(identity, () => app);
-    }
-    final uniqueInstalledApps = uniqueInstalledByIdentity.values.toList();
-
-    final persisted = await isar.appInfoDbs.where().sortByPosition().findAll();
-
-    if (uniqueInstalledApps.isEmpty && persisted.isNotEmpty) {
-      final fallback = await _loadPersistedApps();
-      state = AsyncValue.data(fallback);
-      return fallback;
-    }
-
-    final installedByIdentity = <String, AppInfo>{
-      for (final app in uniqueInstalledApps) appIdentityKey(app): app,
-    };
-
-    final orderedApps = <AppInfo>[];
-    final seenIdentities = <String>{};
-
-    for (final persistedApp in persisted) {
-      final installed = installedByIdentity[persistedApp.packageName];
-      if (installed != null) {
-        orderedApps.add(installed);
-        seenIdentities.add(appIdentityKey(installed));
+      final installedApps = await service.getInstalledApps();
+      final uniqueInstalledByIdentity = <String, AppInfo>{};
+      for (final app in installedApps) {
+        final packageName = app.packageName.trim();
+        final identity = appIdentityKey(app).trim();
+        if (packageName.isEmpty || identity.isEmpty) continue;
+        uniqueInstalledByIdentity.putIfAbsent(identity, () => app);
       }
-    }
+      final uniqueInstalledApps = uniqueInstalledByIdentity.values.toList();
 
-    for (final app in uniqueInstalledApps) {
-      if (!seenIdentities.contains(appIdentityKey(app))) {
-        orderedApps.add(app);
+      final persisted = await isar.appInfoDbs
+          .where()
+          .sortByPosition()
+          .findAll();
+
+      if (uniqueInstalledApps.isEmpty && persisted.isNotEmpty) {
+        final fallback = await _loadPersistedApps();
+        state = AsyncValue.data(fallback);
+        return fallback;
       }
-    }
 
-    final dedupedOrderedApps = <AppInfo>[];
-    final dedupedIdentities = <String>{};
-    for (final app in orderedApps) {
-      if (dedupedIdentities.add(appIdentityKey(app))) {
-        dedupedOrderedApps.add(app);
-      }
-    }
+      final installedByIdentity = <String, AppInfo>{
+        for (final app in uniqueInstalledApps) appIdentityKey(app): app,
+      };
 
-    if (!_matchesPersistedOrderAndNames(persisted, dedupedOrderedApps)) {
-      await isar.writeTxn(() async {
-        await isar.appInfoDbs.clear();
-        for (var i = 0; i < dedupedOrderedApps.length; i++) {
-          final app = dedupedOrderedApps[i];
-          await isar.appInfoDbs.putByPackageName(
-            AppInfoDb()
-              ..packageName = appIdentityKey(app)
-              ..appName = app.name
-              ..icon = app.icon
-              ..position = i,
-          );
+      final orderedApps = <AppInfo>[];
+      final seenIdentities = <String>{};
+
+      for (final persistedApp in persisted) {
+        final installed = installedByIdentity[persistedApp.packageName];
+        if (installed != null) {
+          orderedApps.add(installed);
+          seenIdentities.add(appIdentityKey(installed));
         }
-      });
+      }
+
+      for (final app in uniqueInstalledApps) {
+        if (!seenIdentities.contains(appIdentityKey(app))) {
+          orderedApps.add(app);
+        }
+      }
+
+      final dedupedOrderedApps = <AppInfo>[];
+      final dedupedIdentities = <String>{};
+      for (final app in orderedApps) {
+        if (dedupedIdentities.add(appIdentityKey(app))) {
+          dedupedOrderedApps.add(app);
+        }
+      }
+
+      if (!_matchesPersistedOrderAndNames(persisted, dedupedOrderedApps)) {
+        await isar.writeTxn(() async {
+          await isar.appInfoDbs.clear();
+          for (var i = 0; i < dedupedOrderedApps.length; i++) {
+            final app = dedupedOrderedApps[i];
+            await isar.appInfoDbs.putByPackageName(
+              AppInfoDb()
+                ..packageName = appIdentityKey(app)
+                ..appName = app.name
+                ..icon = app.icon
+                ..position = i,
+            );
+          }
+        });
+      }
+
+      await ref
+          .read(dockAppsProvider.notifier)
+          .syncWithInstalledApps(dedupedOrderedApps);
+
+      state = AsyncValue.data(dedupedOrderedApps);
+      return dedupedOrderedApps;
+    } catch (_) {
+      final current = state.valueOrNull;
+      if (current != null && current.isNotEmpty) {
+        return current;
+      }
+
+      try {
+        final fallback = await _loadPersistedApps();
+        if (fallback.isNotEmpty) {
+          state = AsyncValue.data(fallback);
+        }
+        return fallback;
+      } catch (_) {
+        return current ?? const <AppInfo>[];
+      }
     }
-
-    await ref
-        .read(dockAppsProvider.notifier)
-        .syncWithInstalledApps(dedupedOrderedApps);
-
-    state = AsyncValue.data(dedupedOrderedApps);
-    return dedupedOrderedApps;
   }
 
   Future<void> reorderApps(int oldIndex, int newIndex) async {
@@ -1182,9 +1343,6 @@ class WallpaperNotifier {
     } catch (_) {
       // Ignore transient failures from native wallpaper provider.
     }
-
-    await Future<void>.delayed(const Duration(milliseconds: 350));
-    ref.invalidate(wallpaperBytesProvider);
   }
 
   Future<bool> setWallpaperFromImagePath(String path) async {
@@ -1225,6 +1383,15 @@ class SettingsNotifier {
         final next = _defaultSettingsDb()..clockStyle = style;
         await isar.settingsDbs.put(next);
       }
+    });
+  }
+
+  Future<void> updateShowWeatherWidget(bool enabled) async {
+    final isar = await ref.read(isarProvider.future);
+    await isar.writeTxn(() async {
+      final settings = await isar.settingsDbs.get(1) ?? _defaultSettingsDb();
+      settings.showWeatherWidget = enabled;
+      await isar.settingsDbs.put(settings);
     });
   }
 

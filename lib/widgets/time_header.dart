@@ -45,6 +45,7 @@ class _TimeHeaderState extends ConsumerState<TimeHeader> {
   late final PageController _pageController;
   int _currentPage = 1;
   int _mediaCardTapCount = 0;
+  bool _isPlayPausePressed = false;
   Timer? _tapResetTimer;
 
   @override
@@ -275,6 +276,8 @@ class _TimeHeaderState extends ConsumerState<TimeHeader> {
     final artist = mediaInfo['artistName'] as String? ?? 'Unknown Artist';
     final isPlaying = mediaInfo['isPlaying'] as bool? ?? false;
     final albumArtBytes = mediaInfo['albumArt'] as Uint8List?;
+    final albumArtCacheSize = (72 * MediaQuery.devicePixelRatioOf(context))
+        .round();
 
     return Container(
       decoration: BoxDecoration(
@@ -295,7 +298,13 @@ class _TimeHeaderState extends ConsumerState<TimeHeader> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: albumArtBytes != null && albumArtBytes.isNotEmpty
-                  ? Image.memory(albumArtBytes, fit: BoxFit.cover)
+                  ? Image.memory(
+                      albumArtBytes,
+                      fit: BoxFit.cover,
+                      gaplessPlayback: true,
+                      cacheWidth: albumArtCacheSize,
+                      cacheHeight: albumArtCacheSize,
+                    )
                   : const Icon(
                       Icons.music_note,
                       size: 36,
@@ -347,19 +356,55 @@ class _TimeHeaderState extends ConsumerState<TimeHeader> {
                             .sendMediaAction('previous');
                       },
                     ),
-                    IconButton(
-                      icon: Icon(
-                        isPlaying
-                            ? Icons.pause_circle_filled
-                            : Icons.play_circle_filled,
-                        color: Colors.white,
-                      ),
-                      iconSize: 36,
-                      onPressed: () {
-                        ref
-                            .read(appServiceProvider)
-                            .sendMediaAction(isPlaying ? 'pause' : 'play');
+                    Listener(
+                      onPointerDown: (_) {
+                        setState(() => _isPlayPausePressed = true);
                       },
+                      onPointerUp: (_) {
+                        setState(() => _isPlayPausePressed = false);
+                      },
+                      onPointerCancel: (_) {
+                        setState(() => _isPlayPausePressed = false);
+                      },
+                      child: AnimatedScale(
+                        scale: _isPlayPausePressed ? 0.9 : 1.0,
+                        duration: const Duration(milliseconds: 120),
+                        curve: Curves.easeOutBack,
+                        child: IconButton(
+                          icon: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 220),
+                            switchInCurve: Curves.easeOutCubic,
+                            switchOutCurve: Curves.easeInCubic,
+                            transitionBuilder: (child, animation) {
+                              final scaleAnimation = Tween<double>(
+                                begin: 0.88,
+                                end: 1.0,
+                              ).animate(animation);
+
+                              return FadeTransition(
+                                opacity: animation,
+                                child: ScaleTransition(
+                                  scale: scaleAnimation,
+                                  child: child,
+                                ),
+                              );
+                            },
+                            child: Icon(
+                              isPlaying
+                                  ? Icons.pause_circle_filled
+                                  : Icons.play_circle_filled,
+                              key: ValueKey<bool>(isPlaying),
+                              color: Colors.white,
+                            ),
+                          ),
+                          iconSize: 36,
+                          onPressed: () {
+                            ref
+                                .read(appServiceProvider)
+                                .sendMediaAction(isPlaying ? 'pause' : 'play');
+                          },
+                        ),
+                      ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.skip_next, color: Colors.white),
@@ -383,6 +428,7 @@ class _TimeHeaderState extends ConsumerState<TimeHeader> {
     final now = ref.watch(liveTimeProvider).valueOrNull ?? DateTime.now();
     final settings = ref.watch(settingsProvider).valueOrNull;
     final clockStyle = settings?.clockStyle ?? 'digital';
+    final showWeatherWidget = settings?.showWeatherWidget ?? true;
     final rightWidgetSlotId = settings?.rightWidgetSlotId;
     final hourString = DateFormat('HH').format(now);
     final minuteString = DateFormat('mm').format(now);
@@ -482,11 +528,12 @@ class _TimeHeaderState extends ConsumerState<TimeHeader> {
                           ],
                         ),
                       ),
-                      const Positioned(
-                        top: 0,
-                        right: 0,
-                        child: WeatherWidget(),
-                      ),
+                      if (showWeatherWidget)
+                        const Positioned(
+                          top: 0,
+                          right: 0,
+                          child: WeatherWidget(),
+                        ),
                     ],
                   ),
                 ),

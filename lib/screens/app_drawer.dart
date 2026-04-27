@@ -191,6 +191,10 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
     final allApps = ref.watch(displayAppsProvider);
     final iconTheme = ref.watch(iconThemeProvider);
     final wallpaper = ref.watch(wallpaperBytesProvider).valueOrNull;
+    final hasValidWallpaper =
+        wallpaper != null &&
+        wallpaper.isNotEmpty &&
+        wallpaper.length <= kMaxWallpaperBytes;
     final scrollPhysics = allApps.length > 40
         ? const ClampingScrollPhysics()
         : const BouncingScrollPhysics();
@@ -202,13 +206,16 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
         children: [
           Positioned.fill(
             child: RepaintBoundary(
-              child: wallpaper != null && wallpaper.isNotEmpty
+              child: hasValidWallpaper
                   ? Image.memory(
                       wallpaper,
                       fit: BoxFit.cover,
                       gaplessPlayback: true,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(color: const Color(0xFF090909));
+                      },
                     )
-                  : Container(color: AppColors.background),
+                  : Container(color: const Color(0xFF090909)),
             ),
           ),
           Positioned.fill(child: Container(color: const Color(0x88000000))),

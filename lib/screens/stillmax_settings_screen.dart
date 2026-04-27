@@ -167,6 +167,11 @@ class _StillmaxSettingsScreenState
     await notifier.updateClockStyle(style);
   }
 
+  Future<void> _updateShowWeatherWidget(bool enabled) async {
+    final notifier = ref.read(settingsNotifierProvider);
+    await notifier.updateShowWeatherWidget(enabled);
+  }
+
   Future<void> _updateFontSize(double scale) async {
     final notifier = ref.read(settingsNotifierProvider);
     await notifier.updateFontScale(scale);
@@ -327,6 +332,7 @@ class _StillmaxSettingsScreenState
     final settings = ref.watch(settingsProvider).valueOrNull;
     final scale = settings?.fontScaleFactor ?? 1.0;
     final clockStyle = settings?.clockStyle ?? 'digital';
+    final showWeatherWidget = settings?.showWeatherWidget ?? true;
     final rightWidgetSlotId = settings?.rightWidgetSlotId;
     final iconTheme = ref.watch(iconThemeProvider);
     final iconColorFilter = IconThemeService.getColorFilterForTheme(iconTheme);
@@ -508,6 +514,57 @@ class _StillmaxSettingsScreenState
                   onPressed: () => unawaited(_enterLayoutAdjustMode()),
                   icon: const Icon(Icons.tune),
                   label: const Text('Adjust Layout Spacing'),
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Weather Section
+              _SectionTitle(title: 'Weather', scale: scale),
+              Text(
+                'Show weather widget in the time header',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                  fontSize: 12 * scale,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerHigh.withValues(alpha: 0.42),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Weather widget',
+                            style: AppTypography.bodyLarge.copyWith(
+                              color: AppColors.onSurface,
+                              fontSize: 15 * scale,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            showWeatherWidget ? 'On' : 'Off',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.onSurfaceVariant,
+                              fontSize: 12 * scale,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch.adaptive(
+                      value: showWeatherWidget,
+                      onChanged: (value) =>
+                          unawaited(_updateShowWeatherWidget(value)),
+                      activeThumbColor: AppColors.secondary,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 32),

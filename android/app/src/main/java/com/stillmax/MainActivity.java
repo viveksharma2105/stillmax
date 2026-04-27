@@ -63,6 +63,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
@@ -82,6 +85,7 @@ public class MainActivity extends FlutterActivity {
     private static final int REQUEST_POST_NOTIFICATIONS = 7103;
     private static final int INVALID_APP_WIDGET_ID = -1;
     private static final int WALLPAPER_PREVIEW_MAX_DIMENSION = 1440;
+    private static final int WALLPAPER_MAX_BYTES = 8 * 1024 * 1024;
     private static final long MAX_LAST_LOCATION_AGE_MS = 2 * 60 * 1000L;
     private static final float MAX_FINE_LOCATION_ACCURACY_METERS = 120f;
     private static final float MAX_COARSE_LOCATION_ACCURACY_METERS = 3000f;
@@ -96,6 +100,7 @@ public class MainActivity extends FlutterActivity {
     private int pendingWidgetId = INVALID_APP_WIDGET_ID;
     private AppWidgetProviderInfo pendingProviderInfo;
     private boolean widgetViewFactoryRegistered = false;
+    private final ExecutorService wallpaperExecutor = Executors.newSingleThreadExecutor();
 
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
@@ -333,13 +338,17 @@ public class MainActivity extends FlutterActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (packageBroadcastReceiver != null) {
-            unregisterReceiver(packageBroadcastReceiver);
+            try {
+                unregisterReceiver(packageBroadcastReceiver);
+            } catch (IllegalArgumentException ignored) {
+            }
             packageBroadcastReceiver = null;
         }
         if (appWidgetHost != null) {
             appWidgetHost.stopListening();
         }
         clearPendingBind("cancelled");
+        wallpaperExecutor.shutdown();
     }
 
     @Override
@@ -852,8 +861,13 @@ public class MainActivity extends FlutterActivity {
                         }
 
                         long userSerial = getUserSerial(info.getUser());
+                        long userUid = -1L;
+                        ApplicationInfo applicationInfo = info.getApplicationInfo();
+                        if (applicationInfo != null) {
+                            userUid = applicationInfo.uid;
+                        }
                         String appName = info.getLabel() != null ? info.getLabel().toString() : packageName;
-                        String instanceId = buildInstanceId(packageName, className, userSerial);
+                        String instanceId = buildInstanceId(packageName, className, userSerial, userUid);
 
                         Drawable icon = info.getBadgedIcon(0);
                         byte[] iconBytes = drawableToByteArray(icon);
@@ -863,6 +877,7 @@ public class MainActivity extends FlutterActivity {
                         appData.put("packageName", packageName);
                         appData.put("className", className != null ? className : "");
                         appData.put("userSerial", userSerial);
+                        appData.put("userUid", userUid);
                         appData.put("name", appName);
                         appData.put("appName", appName);
                         appData.put("icon", iconBytes);
@@ -881,9 +896,13 @@ public class MainActivity extends FlutterActivity {
             List<ResolveInfo> resolveInfos = pm.queryIntentActivities(mainIntent, 0);
             long currentSerial = getUserSerial(Process.myUserHandle());
             for (ResolveInfo resolveInfo : resolveInfos) {
+                if (resolveInfo.activityInfo == null || resolveInfo.activityInfo.applicationInfo == null) {
+                    continue;
+                }
                 ApplicationInfo appInfo = resolveInfo.activityInfo.applicationInfo;
                 String packageName = appInfo.packageName;
                 String className = resolveInfo.activityInfo != null ? resolveInfo.activityInfo.name : "";
+                long userUid = appInfo.uid;
                 if (packageName == null || packageName.trim().isEmpty()) {
                     continue;
                 }
@@ -897,10 +916,11 @@ public class MainActivity extends FlutterActivity {
                 byte[] iconBytes = drawableToByteArray(icon);
 
                 Map<String, Object> appData = new HashMap<>();
-                appData.put("instanceId", buildInstanceId(packageName, className, currentSerial));
+                appData.put("instanceId", buildInstanceId(packageName, className, currentSerial, userUid));
                 appData.put("packageName", packageName);
                 appData.put("className", className);
                 appData.put("userSerial", currentSerial);
+                appData.put("userUid", userUid);
                 appData.put("name", appName);
                 appData.put("appName", appName);
                 appData.put("icon", iconBytes);
@@ -930,7 +950,7 @@ public class MainActivity extends FlutterActivity {
                 return;
             }
 
-            UserHandle userHandle = resolveUserHandle(target.userSerial);
+            UserHandle userHandle = resolveUserHandle(target.userSerial, target.userUid);
             LauncherApps launcherApps = (LauncherApps) getSystemService(Context.LAUNCHER_APPS_SERVICE);
 
             if (launcherApps != null && userHandle != null) {
@@ -1032,7 +1052,7 @@ public class MainActivity extends FlutterActivity {
                 return;
             }
 
-            UserHandle userHandle = resolveUserHandle(target.userSerial);
+            UserHandle userHandle = resolveUserHandle(target.userSerial, target.userUid);
             LauncherApps launcherApps = (LauncherApps) getSystemService(Context.LAUNCHER_APPS_SERVICE);
             if (launcherApps != null && userHandle != null) {
                 ComponentName componentName = resolveLauncherComponent(launcherApps, target, userHandle);
@@ -1068,7 +1088,7 @@ public class MainActivity extends FlutterActivity {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
             // Best-effort profile hint; may be ignored by OEM/system UI on some devices.
-            UserHandle userHandle = resolveUserHandle(target.userSerial);
+            UserHandle userHandle = resolveUserHandle(target.userSerial, target.userUid);
             if (userHandle != null) {
                 intent.putExtra("android.intent.extra.USER", userHandle);
             }
@@ -1091,9 +1111,9 @@ public class MainActivity extends FlutterActivity {
         return null;
     }
 
-    private String buildInstanceId(String packageName, String className, long userSerial) {
+    private String buildInstanceId(String packageName, String className, long userSerial, long userUid) {
         String safeClass = className != null ? className : "";
-        return packageName + "|" + safeClass + "|" + userSerial;
+        return packageName + "#" + safeClass + "#" + userSerial + "#" + userUid;
     }
 
     private long getUserSerial(UserHandle userHandle) {
@@ -1107,22 +1127,32 @@ public class MainActivity extends FlutterActivity {
         return userManager.getSerialNumberForUser(userHandle);
     }
 
-    private UserHandle resolveUserHandle(Long userSerial) {
-        if (userSerial == null) {
-            return Process.myUserHandle();
-        }
-
-        UserManager userManager = (UserManager) getSystemService(Context.USER_SERVICE);
-        if (userManager == null) {
-            return Process.myUserHandle();
-        }
-
-        List<UserHandle> profiles = userManager.getUserProfiles();
-        for (UserHandle profile : profiles) {
-            if (userManager.getSerialNumberForUser(profile) == userSerial) {
-                return profile;
+    private UserHandle resolveUserHandle(Long userSerial, Long userUid) {
+        try {
+            if (userSerial != null && userSerial >= 0) {
+                UserManager userManager = (UserManager) getSystemService(Context.USER_SERVICE);
+                if (userManager != null) {
+                    List<UserHandle> profiles = userManager.getUserProfiles();
+                    for (UserHandle profile : profiles) {
+                        if (userManager.getSerialNumberForUser(profile) == userSerial) {
+                            return profile;
+                        }
+                    }
+                }
             }
+
+            if (userUid != null
+                    && userUid >= 0
+                    && userUid <= Integer.MAX_VALUE
+                    && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                try {
+                    return UserHandle.getUserHandleForUid(userUid.intValue());
+                } catch (Exception ignored) {
+                }
+            }
+        } catch (Throwable ignored) {
         }
+
         return Process.myUserHandle();
     }
 
@@ -1166,17 +1196,31 @@ public class MainActivity extends FlutterActivity {
         target.packageName = stringValue(map.get("packageName"));
         target.className = stringValue(map.get("className"));
         target.userSerial = longValue(map.get("userSerial"));
+        target.userUid = longValue(map.get("userUid"));
 
-        if ((target.packageName == null || target.packageName.trim().isEmpty()) && target.instanceId != null) {
-            String[] parts = target.instanceId.split("\\|", -1);
-            if (parts.length >= 1 && parts[0] != null && !parts[0].trim().isEmpty()) {
+        boolean missingPackage = target.packageName == null || target.packageName.trim().isEmpty();
+        boolean missingClass = target.className == null || target.className.trim().isEmpty();
+        boolean missingSerial = target.userSerial == null;
+        boolean missingUid = target.userUid == null;
+        if ((missingPackage || missingClass || missingSerial || missingUid) && target.instanceId != null) {
+            String[] parts;
+            if (target.instanceId.contains("#")) {
+                parts = target.instanceId.split("#", -1);
+            } else {
+                parts = target.instanceId.split("\\|", -1);
+            }
+
+            if (missingPackage && parts.length >= 1 && parts[0] != null && !parts[0].trim().isEmpty()) {
                 target.packageName = parts[0];
             }
-            if ((target.className == null || target.className.trim().isEmpty()) && parts.length >= 2) {
+            if (missingClass && parts.length >= 2) {
                 target.className = parts[1];
             }
-            if (target.userSerial == null && parts.length >= 3) {
+            if (missingSerial && parts.length >= 3) {
                 target.userSerial = longValue(parts[2]);
+            }
+            if (missingUid && parts.length >= 4) {
+                target.userUid = longValue(parts[3]);
             }
         }
 
@@ -1206,6 +1250,7 @@ public class MainActivity extends FlutterActivity {
         String packageName;
         String className;
         Long userSerial;
+        Long userUid;
     }
 
     private void expandStatusBar(MethodChannel.Result result) {
@@ -1246,23 +1291,41 @@ public class MainActivity extends FlutterActivity {
     }
 
     private void getWallpaperBytes(MethodChannel.Result result) {
-        try {
-            WallpaperManager wallpaperManager = WallpaperManager.getInstance(getApplicationContext());
-            Drawable drawable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
-                    ? wallpaperManager.getDrawable(WallpaperManager.FLAG_SYSTEM)
-                    : wallpaperManager.getDrawable();
-            if (drawable == null) {
-                result.success(null);
-                return;
-            }
+        if (wallpaperExecutor.isShutdown() || wallpaperExecutor.isTerminated()) {
+            result.success(null);
+            return;
+        }
 
-            Bitmap bitmap = drawableToBitmap(drawable);
-            Bitmap normalized = normalizeWallpaperBitmap(bitmap);
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            normalized.compress(Bitmap.CompressFormat.JPEG, 80, stream);
-            result.success(stream.toByteArray());
-        } catch (Exception e) {
-            result.error("WALLPAPER_FETCH_ERROR", "Failed to fetch wallpaper bytes: " + e.getMessage(), null);
+        try {
+            wallpaperExecutor.execute(() -> {
+                try {
+                    WallpaperManager wallpaperManager = WallpaperManager.getInstance(getApplicationContext());
+                    Drawable drawable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
+                            ? wallpaperManager.getDrawable(WallpaperManager.FLAG_SYSTEM)
+                            : wallpaperManager.getDrawable();
+                    if (drawable == null) {
+                        runOnUiThread(() -> result.success(null));
+                        return;
+                    }
+
+                    Bitmap bitmap = drawableToBitmap(drawable);
+                    Bitmap normalized = normalizeWallpaperBitmap(bitmap);
+                    ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                    normalized.compress(Bitmap.CompressFormat.JPEG, 80, stream);
+                    byte[] bytes = stream.toByteArray();
+                    if (bytes == null || bytes.length == 0 || bytes.length > WALLPAPER_MAX_BYTES) {
+                        runOnUiThread(() -> result.success(null));
+                        return;
+                    }
+                    runOnUiThread(() -> result.success(bytes));
+                } catch (OutOfMemoryError ignored) {
+                    runOnUiThread(() -> result.success(null));
+                } catch (Throwable ignored) {
+                    runOnUiThread(() -> result.success(null));
+                }
+            });
+        } catch (RejectedExecutionException ignored) {
+            result.success(null);
         }
     }
 

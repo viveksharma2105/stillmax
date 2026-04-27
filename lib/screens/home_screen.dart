@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' show min;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -22,13 +23,25 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  static const double _homeSidebarTouchWidth = 62.0;
+  static const double _homeSidebarItemWidth = 38.0;
+  static const double _homeSidebarEdgeActivationSlop = 34.0;
+
   final ScrollController _appsScrollController = ScrollController();
+  final Map<String, GlobalKey> _sectionKeys = {
+    for (int i = 0; i < 26; i++) String.fromCharCode(65 + i): GlobalKey(),
+  };
 
   Timer? _scrollIdleTimer;
   bool _isAppsScrolling = false;
   bool _showAppDrawer = false;
   String? _drawerInitialLetter;
-  String _selectedLetter = '★';
+  bool _isAllAppsMode = false;
+  double? _swipeUpStartX;
+  double _downwardDragDy = 0.0;
+  String? _pendingSectionLetter;
+  bool _sectionJumpScheduled = false;
+  int _sectionJumpRetryCount = 0;
   StreamSubscription<void>? _homeSubscription;
 
   @override
@@ -94,23 +107,152 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
-  void _jumpToLetter(String letter) {
-    setState(() {
-      _selectedLetter = letter;
-    });
-    // Scroll to top when letter changes
-    _appsScrollController.animateTo(
-      0,
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
+  void _openStillmaxSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const StillmaxSettingsScreen()),
     );
   }
+
+  void _goToFavorites() {
+    final alreadyAtFavorites = !_isAllAppsMode;
+    final hasClients = _appsScrollController.hasClients;
+    final atTop = !hasClients || _appsScrollController.offset <= 0.5;
+
+    if (alreadyAtFavorites && atTop) {
+      return;
+    }
+
+    if (!alreadyAtFavorites) {
+      setState(() {
+        _isAllAppsMode = false;
+      });
+    }
+
+    if (hasClients) {
+      if (atTop) {
+        _appsScrollController.jumpTo(0);
+      } else {
+        _appsScrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    }
+  }
+
+  void _scheduleSectionJumpIfNeeded() {
+    if (_sectionJumpScheduled) {
+      return;
+    }
+
+    _sectionJumpScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _sectionJumpScheduled = false;
+      if (!mounted) {
+        return;
+      }
+
+      final targetLetter = _pendingSectionLetter;
+      if (targetLetter == null) {
+        return;
+      }
+
+      final sectionContext = _sectionKeys[targetLetter]?.currentContext;
+      if (sectionContext == null) {
+        if (_sectionJumpRetryCount < 1) {
+          // Retry once on next frame in case section keys mount slightly later.
+          _sectionJumpRetryCount++;
+          _scheduleSectionJumpIfNeeded();
+          return;
+        }
+
+        _pendingSectionLetter = null;
+        _sectionJumpRetryCount = 0;
+        return;
+      }
+
+      _pendingSectionLetter = null;
+      _sectionJumpRetryCount = 0;
+      Scrollable.ensureVisible(
+        sectionContext,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        alignment: 0,
+      );
+    });
+  }
+
+  void _scrollToSection(String letter) {
+    _pendingSectionLetter = letter;
+    _sectionJumpRetryCount = 0;
+
+    if (!_isAllAppsMode) {
+      setState(() {
+        _isAllAppsMode = true;
+      });
+    }
+
+    _scheduleSectionJumpIfNeeded();
+  }
+
+  double _sidebarProtectedBoundary(
+    double screenWidth,
+    double sidebarHorizontalOffset,
+  ) {
+    const guardPx = 20.0;
+    final rightProtectionBoundary =
+        screenWidth -
+        (sidebarHorizontalOffset +
+            _homeSidebarTouchWidth +
+            _homeSidebarEdgeActivationSlop +
+            guardPx);
+    return min(screenWidth * 0.75, rightProtectionBoundary);
+  }
+
+  void _onSidebarLetterTap(String letter) {
+    if (letter == '#') {
+      _openStillmaxSettings();
+      return;
+    }
+
+    if (letter == '★') {
+      _goToFavorites();
+      return;
+    }
+
+    _scrollToSection(letter);
+  }
+
+  void _onSidebarLetterPreview(String letter) {
+    if (letter == '#') {
+      return;
+    }
+
+    if (letter == '★') {
+      final alreadyFavorites = !_isAllAppsMode;
+      if (alreadyFavorites) {
+        return;
+      }
+      _goToFavorites();
+      return;
+    }
+
+    _scrollToSection(letter);
+  }
+
+  void _onSidebarInteractionEnd() {}
 
   @override
   Widget build(BuildContext context) {
     final apps = ref.watch(displayAppsProvider);
     final starredPackages = ref.watch(starredAppsProvider);
     final wallpaper = ref.watch(wallpaperBytesProvider).valueOrNull;
+    final hasValidWallpaper =
+        wallpaper != null &&
+        wallpaper.isNotEmpty &&
+        wallpaper.length <= kMaxWallpaperBytes;
     final settings = ref.watch(settingsProvider).valueOrNull;
     final scale = settings?.fontScaleFactor ?? 1.0;
     final clockSpacing = (settings?.clockSpacing ?? 40.0).clamp(0.0, 200.0);
@@ -124,38 +266,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final layoutAdjustMode = ref.watch(layoutAdjustModeProvider);
 
     final navBarHeight = MediaQuery.of(context).padding.bottom;
+    final screenWidth = MediaQuery.of(context).size.width;
 
-    final sidebarLetters = [
-      '★',
-      ...List<String>.generate(
-        26,
-        (index) => String.fromCharCode(65 + index),
-        growable: false,
-      ),
-    ];
+    final alphabetLetters = List<String>.generate(
+      26,
+      (index) => String.fromCharCode(65 + index),
+      growable: false,
+    );
+    final sidebarLetters = ['★', ...alphabetLetters, '#'];
     // All letters are available since they all filter now
     final availableSidebarLetters = {
       '★',
       ...List.generate(26, (i) => String.fromCharCode(65 + i)),
+      '#',
     };
 
-    // Filter apps based on selected letter
-    final List<AppInfo> displayedApps;
+    final groupedApps = {
+      for (final letter in alphabetLetters) letter: <AppInfo>[],
+    };
+    final otherApps = <AppInfo>[];
+    for (final app in apps) {
+      final trimmed = app.name.trim();
+      if (trimmed.isEmpty) {
+        continue;
+      }
+      final firstChar = trimmed[0].toUpperCase();
+      if (groupedApps.containsKey(firstChar)) {
+        groupedApps[firstChar]!.add(app);
+      } else {
+        otherApps.add(app);
+      }
+    }
+
+    final List<AppInfo> favoriteApps;
     final String sectionTitle;
 
-    if (_selectedLetter == '★') {
-      displayedApps = apps
+    if (!_isAllAppsMode) {
+      favoriteApps = apps
           .where((app) => identityCollectionContainsApp(starredPackages, app))
           .toList();
       sectionTitle = 'FAVOURITES';
     } else {
-      displayedApps = apps.where((app) {
-        final firstChar = app.name.trim().isEmpty
-            ? ''
-            : app.name.trim()[0].toUpperCase();
-        return firstChar == _selectedLetter;
-      }).toList();
-      sectionTitle = _selectedLetter;
+      favoriteApps = const <AppInfo>[];
+      sectionTitle = 'ALL APPS';
     }
 
     return PopScope(
@@ -168,11 +321,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Stack(
         children: [
           Positioned.fill(
-            child: wallpaper != null && wallpaper.isNotEmpty
+            child: hasValidWallpaper
                 ? Image.memory(
                     wallpaper,
                     fit: BoxFit.cover,
                     gaplessPlayback: true,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(color: const Color(0xFF090909));
+                    },
                   )
                 : Container(color: const Color(0xFF090909)),
           ),
@@ -187,14 +343,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             backgroundColor: Colors.transparent,
             body: GestureDetector(
               behavior: HitTestBehavior.translucent,
-              onLongPress: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const StillmaxSettingsScreen(),
-                  ),
-                );
-              },
+              onLongPress: _openStillmaxSettings,
               child: Column(
                 children: [
                   // ZONE 1 — Fixed header, never scrolls
@@ -209,19 +358,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       children: [
                         GestureDetector(
                           behavior: HitTestBehavior.translucent,
+                          onVerticalDragDown: (details) {
+                            _swipeUpStartX = details.globalPosition.dx;
+                            _downwardDragDy = 0.0;
+                          },
+                          onVerticalDragUpdate: (details) {
+                            _downwardDragDy =
+                                (_downwardDragDy + details.delta.dy).clamp(
+                                  0.0,
+                                  5000.0,
+                                );
+                          },
+                          onVerticalDragCancel: () {
+                            _swipeUpStartX = null;
+                            _downwardDragDy = 0.0;
+                          },
                           onVerticalDragEnd: (details) {
-                            // Only allow swipe-up drawer open while on Favourites view.
-                            if (_selectedLetter != '★') {
+                            final startX = _swipeUpStartX;
+                            _swipeUpStartX = null;
+                            final dragDistance = _downwardDragDy;
+                            _downwardDragDy = 0.0;
+                            final velocity = details.primaryVelocity;
+
+                            if (startX == null) {
                               return;
                             }
 
-                            if (details.primaryVelocity != null &&
-                                details.primaryVelocity! < -100) {
+                            final allowedBoundary = _sidebarProtectedBoundary(
+                              screenWidth,
+                              sidebarHorizontalOffset,
+                            );
+                            if (startX > allowedBoundary) {
+                              return;
+                            }
+
+                            if (_isAllAppsMode) {
+                              final atTop =
+                                  !_appsScrollController.hasClients ||
+                                  _appsScrollController.offset <= 4.0;
+
+                              // In all-apps list at top (A), downward slide returns to favourites.
+                              if (atTop &&
+                                  ((velocity != null && velocity > 100) ||
+                                      dragDistance > 24.0)) {
+                                _goToFavorites();
+                              }
+                              return;
+                            }
+
+                            if (velocity != null && velocity < -100) {
                               _openAppDrawer();
                             }
                           },
                           child: ListView(
-                            physics: const NeverScrollableScrollPhysics(),
+                            controller: _appsScrollController,
+                            physics: !_isAllAppsMode
+                                ? const NeverScrollableScrollPhysics()
+                                : const ClampingScrollPhysics(),
                             padding: EdgeInsets.zero,
                             children: [
                               SizedBox(height: favoritesSpacing),
@@ -238,7 +431,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   child: Row(
                                     key: ValueKey(sectionTitle),
                                     children: [
-                                      if (_selectedLetter == '★') ...[
+                                      if (!_isAllAppsMode) ...[
                                         Icon(
                                           Icons.star,
                                           color: AppColors.secondary,
@@ -263,7 +456,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
 
                               // App tiles
-                              if (displayedApps.isEmpty)
+                              if (!_isAllAppsMode)
+                                if (favoriteApps.isEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                    ),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.05,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        'No favourites yet. Manage favourites in Stillmax Settings.',
+                                        style: TextStyle(
+                                          fontSize: 12 * scale,
+                                          color: Colors.white.withValues(
+                                            alpha: 0.45,
+                                          ),
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  ...favoriteApps.map(
+                                    (app) => Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                      ),
+                                      child: AppListTile(
+                                        app: app,
+                                        starred: identityCollectionContainsApp(
+                                          starredPackages,
+                                          app,
+                                        ),
+                                        showDivider: false,
+                                      ),
+                                    ),
+                                  )
+                              else if (groupedApps.values.every(
+                                    (letterApps) => letterApps.isEmpty,
+                                  ) &&
+                                  otherApps.isEmpty)
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
@@ -277,9 +515,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
-                                      _selectedLetter == '★'
-                                          ? 'No favourites yet. Manage favourites in Stillmax Settings.'
-                                          : 'No apps starting with $_selectedLetter',
+                                      'No apps available',
                                       style: TextStyle(
                                         fontSize: 12 * scale,
                                         color: Colors.white.withValues(
@@ -291,21 +527,84 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   ),
                                 )
                               else
-                                ...displayedApps.map(
-                                  (app) => Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                    ),
-                                    child: AppListTile(
-                                      app: app,
-                                      starred: identityCollectionContainsApp(
-                                        starredPackages,
-                                        app,
+                                ...alphabetLetters.expand((letter) {
+                                  final letterApps = groupedApps[letter]!;
+                                  if (letterApps.isEmpty) {
+                                    return const <Widget>[];
+                                  }
+                                  return [
+                                    Padding(
+                                      key: _sectionKeys[letter],
+                                      padding: const EdgeInsets.only(
+                                        left: 16,
+                                        top: 8,
+                                        bottom: 2,
                                       ),
-                                      showDivider: false,
+                                      child: Text(
+                                        letter,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white.withValues(
+                                            alpha: 0.35,
+                                          ),
+                                          letterSpacing: 1.0,
+                                        ),
+                                      ),
+                                    ),
+                                    ...letterApps.map(
+                                      (app) => Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                        ),
+                                        child: AppListTile(
+                                          app: app,
+                                          starred:
+                                              identityCollectionContainsApp(
+                                                starredPackages,
+                                                app,
+                                              ),
+                                          showDivider: false,
+                                        ),
+                                      ),
+                                    ),
+                                  ];
+                                }),
+                                if (otherApps.isNotEmpty) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: 16,
+                                      top: 8,
+                                      bottom: 2,
+                                    ),
+                                    child: Text(
+                                      'OTHER',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white.withValues(
+                                          alpha: 0.35,
+                                        ),
+                                        letterSpacing: 1.0,
+                                      ),
                                     ),
                                   ),
-                                ),
+                                  ...otherApps.map(
+                                    (app) => Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                      ),
+                                      child: AppListTile(
+                                        app: app,
+                                        starred: identityCollectionContainsApp(
+                                          starredPackages,
+                                          app,
+                                        ),
+                                        showDivider: false,
+                                      ),
+                                    ),
+                                  ),
+                                ],
 
                               const SizedBox(height: 12),
                               SizedBox(height: navBarHeight + 80),
@@ -315,15 +614,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                         // Alphabet sidebar - stays pinned
                         Positioned(
-                          right: sidebarHorizontalOffset,
+                          right: 0,
                           top: sidebarSpacing,
                           bottom: navBarHeight + 80,
                           child: AlphabetSidebar(
                             letters: sidebarLetters,
                             availableLetters: availableSidebarLetters,
-                            onLetterChanged: _jumpToLetter,
+                            onLetterChanged: _onSidebarLetterTap,
+                            onLetterTap: _onSidebarLetterTap,
+                            onLetterPreview: _onSidebarLetterPreview,
+                            onInteractionEnd: _onSidebarInteractionEnd,
+                            underflowLetter: '★',
                             fontScaleFactor: scale,
                             isScrolling: _isAppsScrolling,
+                            touchWidth: _homeSidebarTouchWidth,
+                            itemWidth: _homeSidebarItemWidth,
+                            rightInset: sidebarHorizontalOffset,
+                            edgeActivationSlop: _homeSidebarEdgeActivationSlop,
                           ),
                         ),
 

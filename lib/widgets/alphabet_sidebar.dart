@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 
 typedef OnLetterChanged = void Function(String letter);
+typedef OnSidebarInteractionEnd = void Function();
 
 class AlphabetSidebar extends StatefulWidget {
   const AlphabetSidebar({
@@ -15,13 +16,33 @@ class AlphabetSidebar extends StatefulWidget {
     required this.onLetterChanged,
     required this.fontScaleFactor,
     required this.isScrolling,
+    this.onLetterTap,
+    this.onLetterPreview,
+    this.onInteractionEnd,
+    this.underflowLetter,
+    this.touchWidth = baseTouchWidth,
+    this.itemWidth = defaultItemWidth,
+    this.rightInset = 0.0,
+    this.edgeActivationSlop = defaultEdgeActivationSlop,
   });
+
+  static const double baseTouchWidth = 44.0;
+  static const double defaultItemWidth = 30.0;
+  static const double defaultEdgeActivationSlop = 24.0;
 
   final List<String> letters;
   final Set<String> availableLetters;
   final OnLetterChanged onLetterChanged;
   final double fontScaleFactor;
   final bool isScrolling;
+  final ValueChanged<String>? onLetterTap;
+  final ValueChanged<String>? onLetterPreview;
+  final OnSidebarInteractionEnd? onInteractionEnd;
+  final String? underflowLetter;
+  final double touchWidth;
+  final double itemWidth;
+  final double rightInset;
+  final double edgeActivationSlop;
 
   @override
   State<AlphabetSidebar> createState() => _AlphabetSidebarState();
@@ -32,14 +53,25 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
   bool _showPopup = false;
   int _version = 0;
   double? _touchY;
+  int? _activePointerId;
 
-  static const _itemWidth = 30.0;
-  static const _touchWidth = 60.0;
   static const _maxItemHeight = 24.0;
   static const _minItemHeight = 16.0;
 
+  double get _effectiveTouchWidth =>
+      widget.touchWidth + widget.rightInset + widget.edgeActivationSlop;
+
   bool _isEnabledLetter(String letter) =>
       widget.availableLetters.contains(letter);
+
+  void _updateTouchY(double nextY) {
+    if (_touchY == nextY) {
+      return;
+    }
+    setState(() {
+      _touchY = nextY;
+    });
+  }
 
   void _hidePopup({Duration delay = const Duration(milliseconds: 120)}) {
     final localVersion = ++_version;
@@ -53,31 +85,99 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
     });
   }
 
-  void _selectLetter(Offset localPosition, double itemHeight) {
+  String? _letterFromPosition(Offset localPosition, double itemHeight) {
     if (widget.letters.isEmpty) {
-      return;
+      return null;
+    }
+    if (localPosition.dy < 0 && widget.underflowLetter != null) {
+      return widget.underflowLetter;
+    }
+    final lettersHeight = widget.letters.length * itemHeight;
+    if (localPosition.dy >= lettersHeight) {
+      return null;
     }
     final index = (localPosition.dy / itemHeight).floor().clamp(
       0,
       widget.letters.length - 1,
     );
-    final letter = widget.letters[index];
-    if (!_isEnabledLetter(letter)) {
+    return widget.letters[index];
+  }
+
+  void _setActiveLetter(String letter) {
+    if (_activeLetter == letter) {
+      if (!_showPopup) {
+        _version++;
+        setState(() {
+          _showPopup = true;
+        });
+      }
       return;
     }
-    if (_activeLetter == letter && _showPopup) {
-      return;
-    }
+
     // Add haptic feedback when letter changes
-    if (_activeLetter != letter) {
-      HapticFeedback.selectionClick();
-    }
+    HapticFeedback.selectionClick();
     _version++;
     setState(() {
       _activeLetter = letter;
       _showPopup = true;
     });
-    widget.onLetterChanged(letter);
+  }
+
+  void _previewLetter(Offset localPosition, double itemHeight) {
+    final letter = _letterFromPosition(localPosition, itemHeight);
+    if (letter == null || !_isEnabledLetter(letter)) {
+      return;
+    }
+
+    if (_activeLetter == letter && _showPopup) {
+      return;
+    }
+
+    _setActiveLetter(letter);
+    final handler = widget.onLetterPreview ?? widget.onLetterChanged;
+    handler(letter);
+  }
+
+  void _startPointerInteraction(PointerDownEvent event, double itemHeight) {
+    if (_activePointerId != null && _activePointerId != event.pointer) {
+      return;
+    }
+    _activePointerId = event.pointer;
+    _updateTouchY(event.localPosition.dy);
+    _previewLetter(event.localPosition, itemHeight);
+  }
+
+  void _updatePointerInteraction(PointerMoveEvent event, double itemHeight) {
+    if (_activePointerId != event.pointer) {
+      return;
+    }
+    _updateTouchY(event.localPosition.dy);
+    _previewLetter(event.localPosition, itemHeight);
+  }
+
+  void _finishPointerInteraction(int pointerId, {bool triggerTap = false}) {
+    if (_activePointerId != pointerId) {
+      return;
+    }
+
+    final completedLetter = _activeLetter;
+    _activePointerId = null;
+
+    if (triggerTap && completedLetter == '#') {
+      final handler = widget.onLetterTap ?? widget.onLetterChanged;
+      handler(completedLetter!);
+    }
+
+    _endInteraction();
+  }
+
+  void _endInteraction() {
+    setState(() {
+      _activeLetter = null;
+      _touchY = null;
+    });
+    _hidePopup();
+    widget.onInteractionEnd?.call();
   }
 
   @override
@@ -100,7 +200,7 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
 
     return SafeArea(
       child: SizedBox(
-        width: _touchWidth,
+        width: _effectiveTouchWidth,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final itemHeight = _calculateItemHeight(constraints.maxHeight);
@@ -115,91 +215,70 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                   duration: const Duration(milliseconds: 140),
                   curve: Curves.easeOut,
                   opacity: barOpacity,
-                  child: GestureDetector(
+                  child: Listener(
                     behavior: HitTestBehavior.translucent,
-                    onPanStart: (details) {
-                      _selectLetter(details.localPosition, itemHeight);
-                      setState(() {
-                        _touchY = details.localPosition.dy;
-                      });
-                    },
-                    onPanUpdate: (details) {
-                      setState(() {
-                        _touchY = details.localPosition.dy;
-                      });
-                      _selectLetter(details.localPosition, itemHeight);
-                    },
-                    onPanEnd: (_) {
-                      setState(() {
-                        _activeLetter = null;
-                        _touchY = null;
-                      });
-                      _hidePopup();
-                    },
-                    onPanCancel: () {
-                      setState(() {
-                        _activeLetter = null;
-                        _touchY = null;
-                      });
-                      _hidePopup();
-                    },
-                    onTapDown: (details) {
-                      _selectLetter(details.localPosition, itemHeight);
-                      _hidePopup(delay: const Duration(milliseconds: 420));
-                      Future<void>.delayed(
-                        const Duration(milliseconds: 250),
-                        () {
-                          if (!mounted) return;
-                          setState(() => _activeLetter = null);
-                        },
-                      );
-                    },
+                    onPointerDown: (event) =>
+                        _startPointerInteraction(event, itemHeight),
+                    onPointerMove: (event) =>
+                        _updatePointerInteraction(event, itemHeight),
+                    onPointerUp: (event) =>
+                        _finishPointerInteraction(
+                          event.pointer,
+                          triggerTap: true,
+                        ),
+                    onPointerCancel: (event) =>
+                        _finishPointerInteraction(event.pointer),
                     child: SizedBox(
-                      width: _touchWidth,
+                      width: _effectiveTouchWidth,
                       child: Align(
                         alignment: Alignment.centerRight,
-                        child: SizedBox(
-                          width: _itemWidth,
-                          child: Stack(
-                            children: [
-                              if (activeIndex >= 0)
-                                AnimatedPositioned(
-                                  duration: const Duration(milliseconds: 100),
-                                  curve: Curves.easeOut,
-                                  left: 0,
-                                  top: indicatorTop,
-                                  child: Container(
-                                    width: 2,
-                                    height: itemHeight,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.secondary,
-                                      borderRadius: BorderRadius.circular(999),
-                                    ),
-                                  ),
-                                ),
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  for (
-                                    var i = 0;
-                                    i < widget.letters.length;
-                                    i++
-                                  )
-                                    SizedBox(
-                                      width: _itemWidth,
+                        child: Padding(
+                          padding: EdgeInsets.only(right: widget.rightInset),
+                          child: SizedBox(
+                            width: widget.itemWidth,
+                            child: Stack(
+                              children: [
+                                if (activeIndex >= 0)
+                                  AnimatedPositioned(
+                                    duration: const Duration(milliseconds: 100),
+                                    curve: Curves.easeOut,
+                                    left: 0,
+                                    top: indicatorTop,
+                                    child: Container(
+                                      width: 2,
                                       height: itemHeight,
-                                      child: Center(
-                                        child: _buildLetterWidget(
-                                          i,
-                                          activeIndex,
-                                          itemHeight,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.secondary,
+                                        borderRadius: BorderRadius.circular(
+                                          999,
                                         ),
                                       ),
                                     ),
-                                ],
-                              ),
-                            ],
+                                  ),
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    for (
+                                      var i = 0;
+                                      i < widget.letters.length;
+                                      i++
+                                    )
+                                      SizedBox(
+                                        width: widget.itemWidth,
+                                        height: itemHeight,
+                                        child: Center(
+                                          child: _buildLetterWidget(
+                                            i,
+                                            activeIndex,
+                                            itemHeight,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -236,16 +315,22 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                               ),
                             ),
                             alignment: Alignment.center,
-                            child: Text(
-                              _activeLetter ?? '',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: _activeLetter == '★'
-                                    ? AppColors.secondary
-                                    : Colors.white,
-                              ),
-                            ),
+                            child: _activeLetter == '#'
+                                ? const Icon(
+                                    Icons.settings_rounded,
+                                    size: 20,
+                                    color: Colors.white,
+                                  )
+                                : Text(
+                                    _activeLetter ?? '',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: _activeLetter == '★'
+                                          ? AppColors.secondary
+                                          : Colors.white,
+                                    ),
+                                  ),
                           ),
                         ),
                       ),
@@ -264,6 +349,7 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
     final isActive = activeIndex == index;
     final isEnabled = _isEnabledLetter(letter);
     final isStar = letter == '★';
+    final isSettings = letter == '#';
 
     // Calculate horizontal offset for C-curve effect
     double offsetX = 0.0;
@@ -283,7 +369,7 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
     double baseFontSize;
     double opacity;
 
-    if (isStar) {
+    if (isStar || isSettings) {
       // Star is always active and in accent color
       baseFontSize = 16;
       opacity = 1.0;
@@ -312,14 +398,22 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
           duration: const Duration(milliseconds: 95),
           curve: Curves.easeOut,
           opacity: opacity,
-          child: Text(
-            letter,
-            style: TextStyle(
-              fontSize: fontSize,
-              color: (isStar || isActive) ? AppColors.secondary : Colors.white,
-              fontWeight: isActive ? FontWeight.w800 : FontWeight.w700,
-            ),
-          ),
+          child: isSettings
+              ? Icon(
+                  Icons.settings_rounded,
+                  size: (15 * scaleFactor).clamp(11.0, 16.0),
+                  color: isActive ? AppColors.secondary : Colors.white,
+                )
+              : Text(
+                  letter,
+                  style: TextStyle(
+                    fontSize: fontSize,
+                    color: (isStar || isActive)
+                        ? AppColors.secondary
+                        : Colors.white,
+                    fontWeight: isActive ? FontWeight.w800 : FontWeight.w700,
+                  ),
+                ),
         ),
       ),
     );

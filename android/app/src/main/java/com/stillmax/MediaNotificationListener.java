@@ -22,6 +22,43 @@ public class MediaNotificationListener extends NotificationListenerService {
     
     private static MediaNotificationListener instance;
     private MediaSessionManager mediaSessionManager;
+    private static int lastAlbumArtGenerationId = -1;
+    private static int lastAlbumArtWidth = -1;
+    private static int lastAlbumArtHeight = -1;
+    private static String lastAlbumArtMetadataKey = null;
+    private static byte[] cachedAlbumArtBytes = null;
+
+    private static synchronized byte[] getCachedAlbumArtBytes(Bitmap albumArt, String metadataKey) {
+        if (albumArt == null) {
+            lastAlbumArtGenerationId = -1;
+            lastAlbumArtWidth = -1;
+            lastAlbumArtHeight = -1;
+            lastAlbumArtMetadataKey = null;
+            cachedAlbumArtBytes = null;
+            return null;
+        }
+
+        int generationId = albumArt.getGenerationId();
+        int width = albumArt.getWidth();
+        int height = albumArt.getHeight();
+
+        if (cachedAlbumArtBytes != null
+                && generationId == lastAlbumArtGenerationId
+                && width == lastAlbumArtWidth
+                && height == lastAlbumArtHeight
+                && java.util.Objects.equals(metadataKey, lastAlbumArtMetadataKey)) {
+            return cachedAlbumArtBytes;
+        }
+
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        albumArt.compress(Bitmap.CompressFormat.PNG, 80, stream);
+        cachedAlbumArtBytes = stream.toByteArray();
+        lastAlbumArtGenerationId = generationId;
+        lastAlbumArtWidth = width;
+        lastAlbumArtHeight = height;
+        lastAlbumArtMetadataKey = metadataKey;
+        return cachedAlbumArtBytes;
+    }
     
     @Override
     public void onCreate() {
@@ -34,6 +71,7 @@ public class MediaNotificationListener extends NotificationListenerService {
     public void onDestroy() {
         super.onDestroy();
         instance = null;
+        getCachedAlbumArtBytes(null, null);
     }
     
     public static MediaNotificationListener getInstance() {
@@ -82,11 +120,18 @@ public class MediaNotificationListener extends NotificationListenerService {
             result.put("artistName", artistName != null ? artistName : "Unknown Artist");
             result.put("isPlaying", isPlaying);
             result.put("packageName", controller.getPackageName());
+
+            String metadataKey = controller.getPackageName() + "|"
+                    + (trackName != null ? trackName : "") + "|"
+                    + (artistName != null ? artistName : "");
             
             if (albumArt != null) {
-                ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                albumArt.compress(Bitmap.CompressFormat.PNG, 80, stream);
-                result.put("albumArt", stream.toByteArray());
+                byte[] albumArtBytes = getCachedAlbumArtBytes(albumArt, metadataKey);
+                if (albumArtBytes != null) {
+                    result.put("albumArt", albumArtBytes);
+                }
+            } else {
+                getCachedAlbumArtBytes(null, null);
             }
             
         } catch (SecurityException e) {

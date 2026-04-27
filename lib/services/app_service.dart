@@ -7,15 +7,18 @@ String buildAppIdentityKey({
   required String packageName,
   String? instanceId,
   int? userSerial,
+  int userUid = -1,
   String? className,
 }) {
   final normalizedPackage = packageName.trim();
   final normalizedInstanceId = (instanceId ?? '').trim();
   final normalizedUserSerial = userSerial ?? 0;
+  final normalizedUserUid = userUid;
   final normalizedClassName = (className ?? '').trim();
   return [
     normalizedPackage,
     normalizedUserSerial.toString(),
+    normalizedUserUid.toString(),
     normalizedInstanceId,
     normalizedClassName,
   ].join(_identitySeparator);
@@ -27,17 +30,21 @@ AppIdentityParts parseAppIdentityKey(String identityKey) {
     return AppIdentityParts(
       packageName: identityKey.trim(),
       userSerial: 0,
+      userUid: -1,
       instanceId: '',
       className: '',
     );
   }
 
   final userSerial = int.tryParse(parts[1]) ?? 0;
+  final parsedUid = parts.length >= 5 ? int.tryParse(parts[2]) : null;
+  final isNewFormat = parsedUid != null;
   return AppIdentityParts(
     packageName: parts[0],
     userSerial: userSerial,
-    instanceId: parts[2],
-    className: parts.sublist(3).join(_identitySeparator),
+    userUid: isNewFormat ? parsedUid : -1,
+    instanceId: isNewFormat ? parts[3] : parts[2],
+    className: parts.sublist(isNewFormat ? 4 : 3).join(_identitySeparator),
   );
 }
 
@@ -68,25 +75,61 @@ class AppService {
       _homeEventChannel.receiveBroadcastStream().map((_) {});
 
   Future<List<AppInfo>> getInstalledApps() async {
-    final List<dynamic>? result = await _channel.invokeMethod(
-      'getInstalledApps',
-    );
-    if (result == null) return <AppInfo>[];
-
-    return result.map((item) {
-      final map = item as Map<dynamic, dynamic>;
-      return AppInfo(
-        name:
-            (map['name'] as String?) ??
-            (map['appName'] as String?) ??
-            'Unknown',
-        packageName: map['packageName'] as String? ?? '',
-        instanceId: map['instanceId'] as String? ?? '',
-        userSerial: (map['userSerial'] as num?)?.toInt() ?? 0,
-        className: map['className'] as String? ?? '',
-        icon: map['icon'] as Uint8List? ?? Uint8List(0),
+    try {
+      final List<dynamic>? result = await _channel.invokeMethod(
+        'getInstalledApps',
       );
-    }).toList();
+      if (result == null) return <AppInfo>[];
+
+      int parseInt(dynamic value, int fallback) {
+        if (value is num) return value.toInt();
+        return int.tryParse(value?.toString() ?? '') ?? fallback;
+      }
+
+      Uint8List parseIcon(dynamic value) {
+        if (value is Uint8List) {
+          return value;
+        }
+        if (value is List<int>) {
+          return Uint8List.fromList(value);
+        }
+        if (value is List<dynamic>) {
+          final bytes = value
+              .whereType<num>()
+              .map((e) => e.toInt())
+              .toList(growable: false);
+          return Uint8List.fromList(bytes);
+        }
+        return Uint8List(0);
+      }
+
+      return result
+          .whereType<Map<dynamic, dynamic>>()
+          .map((map) {
+            final nameFromName = map['name']?.toString();
+            final nameFromAppName = map['appName']?.toString();
+            final resolvedName =
+                (nameFromName != null && nameFromName.trim().isNotEmpty)
+                ? nameFromName
+                : ((nameFromAppName != null &&
+                          nameFromAppName.trim().isNotEmpty)
+                      ? nameFromAppName
+                      : 'Unknown');
+
+            return AppInfo(
+              name: resolvedName,
+              packageName: map['packageName']?.toString() ?? '',
+              instanceId: map['instanceId']?.toString() ?? '',
+              userSerial: parseInt(map['userSerial'], 0),
+              userUid: parseInt(map['userUid'], -1),
+              className: map['className']?.toString() ?? '',
+              icon: parseIcon(map['icon']),
+            );
+          })
+          .toList(growable: false);
+    } catch (_) {
+      return <AppInfo>[];
+    }
   }
 
   Future<bool> launchApp(AppInfo app) async {
@@ -143,8 +186,12 @@ class AppService {
   }
 
   Future<Uint8List?> getWallpaperBytes() async {
-    final Uint8List? bytes = await _channel.invokeMethod('getWallpaperBytes');
-    return bytes;
+    try {
+      final Uint8List? bytes = await _channel.invokeMethod('getWallpaperBytes');
+      return bytes;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<List<String>> getNotificationPackages() async {
@@ -436,12 +483,14 @@ class AppIdentityParts {
     required this.packageName,
     required this.instanceId,
     required this.userSerial,
+    required this.userUid,
     required this.className,
   });
 
   final String packageName;
   final String instanceId;
   final int userSerial;
+  final int userUid;
   final String className;
 }
 
@@ -451,6 +500,7 @@ class AppInfo {
   final String packageName;
   final String instanceId;
   final int userSerial;
+  final int userUid;
   final String className;
   final Uint8List icon;
 
@@ -459,6 +509,7 @@ class AppInfo {
     required this.packageName,
     this.instanceId = '',
     this.userSerial = 0,
+    this.userUid = -1,
     this.className = '',
     required this.icon,
   });
@@ -467,6 +518,7 @@ class AppInfo {
     packageName: packageName,
     instanceId: instanceId,
     userSerial: userSerial,
+    userUid: userUid,
     className: className,
   );
 
@@ -475,6 +527,7 @@ class AppInfo {
       'packageName': packageName,
       'instanceId': instanceId,
       'userSerial': userSerial,
+      'userUid': userUid,
       'className': className,
     };
   }
@@ -484,6 +537,7 @@ class AppInfo {
     String? packageName,
     String? instanceId,
     int? userSerial,
+    int? userUid,
     String? className,
     Uint8List? icon,
   }) {
@@ -492,6 +546,7 @@ class AppInfo {
       packageName: packageName ?? this.packageName,
       instanceId: instanceId ?? this.instanceId,
       userSerial: userSerial ?? this.userSerial,
+      userUid: userUid ?? this.userUid,
       className: className ?? this.className,
       icon: icon ?? this.icon,
     );
@@ -509,5 +564,5 @@ class AppInfo {
 
   @override
   String toString() =>
-      'AppInfo(name: $name, package: $packageName, userSerial: $userSerial, instanceId: $instanceId, className: $className)';
+      'AppInfo(name: $name, package: $packageName, userSerial: $userSerial, userUid: $userUid, instanceId: $instanceId, className: $className)';
 }
