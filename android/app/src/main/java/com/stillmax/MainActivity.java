@@ -237,12 +237,12 @@ public class MainActivity extends FlutterActivity {
                             createWidgetView(call.argument("appWidgetId"), result);
                             break;
                         case "getActiveMediaSession":
-                            Map<String, Object> mediaData = MediaNotificationListener.getActiveMediaSession(this);
+                            Map<String, Object> mediaData = StillmaxNotificationListenerService.getActiveMediaSession(this);
                             result.success(mediaData);
                             break;
                         case "sendMediaAction":
                             String action = call.argument("action");
-                            MediaNotificationListener.sendMediaAction(this, action);
+                            StillmaxNotificationListenerService.sendMediaAction(this, action);
                             result.success(null);
                             break;
                         case "openNotificationListenerSettings":

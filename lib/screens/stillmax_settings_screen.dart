@@ -13,6 +13,19 @@ import '../theme/app_theme.dart';
 import '../widgets/widget_picker_sheet.dart';
 import 'black_box_password_screen.dart';
 
+class _StillmaxSettingsScrollBehavior extends ScrollBehavior {
+  const _StillmaxSettingsScrollBehavior();
+
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
+  }
+}
+
 class StillmaxSettingsScreen extends ConsumerStatefulWidget {
   const StillmaxSettingsScreen({super.key});
 
@@ -353,12 +366,14 @@ class _StillmaxSettingsScreenState
         title: const Text('Stillmax Settings'),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          primary: false,
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        child: ScrollConfiguration(
+          behavior: const _StillmaxSettingsScrollBehavior(),
+          child: SingleChildScrollView(
+            primary: false,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // Favourites Manager
               _SectionTitle(title: 'Manage Favourites', scale: scale),
               Text(
@@ -748,7 +763,8 @@ class _StillmaxSettingsScreenState
                 ),
               ),
               const SizedBox(height: 80),
-            ],
+              ],
+            ),
           ),
         ),
       ),

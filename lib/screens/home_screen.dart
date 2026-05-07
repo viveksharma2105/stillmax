@@ -28,8 +28,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   static const double _homeSidebarEdgeActivationSlop = 34.0;
 
   final ScrollController _appsScrollController = ScrollController();
+  static const String _miscSidebarLetter = '\$';
+
   final Map<String, GlobalKey> _sectionKeys = {
     for (int i = 0; i < 26; i++) String.fromCharCode(65 + i): GlobalKey(),
+    _miscSidebarLetter: GlobalKey(),
   };
 
   Timer? _scrollIdleTimer;
@@ -43,6 +46,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _sectionJumpScheduled = false;
   int _sectionJumpRetryCount = 0;
   StreamSubscription<void>? _homeSubscription;
+  Timer? _sidebarSyncSuppressionTimer;
+  bool _isScrollDrivenSidebarSyncSuppressed = false;
+  bool _isSidebarInteractionActive = false;
+  String? _sidebarPreviewLetter;
+  Duration _pendingSectionJumpDuration = const Duration(milliseconds: 220);
+  String _sidebarActiveLetter = '★';
 
   @override
   void initState() {
@@ -71,6 +80,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void dispose() {
     _scrollIdleTimer?.cancel();
+    _sidebarSyncSuppressionTimer?.cancel();
     _homeSubscription?.cancel();
     _appsScrollController
       ..removeListener(_onAppsScroll)
@@ -88,8 +98,96 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (!mounted) {
         return;
       }
+      _syncSidebarActiveLetterFromScroll();
       setState(() => _isAppsScrolling = false);
     });
+
+    _syncSidebarActiveLetterFromScroll();
+  }
+
+  void _setSidebarActiveLetter(String letter) {
+    if (_sidebarActiveLetter == letter || !mounted) {
+      return;
+    }
+    setState(() {
+      _sidebarActiveLetter = letter;
+    });
+  }
+
+  void _suppressScrollDrivenSidebarSync([
+    Duration duration = const Duration(milliseconds: 320),
+  ]) {
+    _sidebarSyncSuppressionTimer?.cancel();
+    _isScrollDrivenSidebarSyncSuppressed = true;
+    _sidebarSyncSuppressionTimer = Timer(duration, () {
+      if (!mounted) {
+        return;
+      }
+      _isScrollDrivenSidebarSyncSuppressed = false;
+      _syncSidebarActiveLetterFromScroll();
+    });
+  }
+
+  String? _visibleSectionLetterFromScroll() {
+    if (!_appsScrollController.hasClients) {
+      return null;
+    }
+
+    final viewportContext =
+        _appsScrollController.position.context.notificationContext;
+    final viewportRenderObject = viewportContext?.findRenderObject();
+    if (viewportRenderObject is! RenderBox || !viewportRenderObject.hasSize) {
+      return null;
+    }
+
+    final viewportTop = viewportRenderObject.localToGlobal(Offset.zero).dy;
+    const probeOffsetFromTop = 72.0;
+    final probeY = viewportTop + probeOffsetFromTop;
+
+    String? nearestPassedLetter;
+    double nearestPassedDy = -double.infinity;
+    String? firstVisibleLetter;
+    double firstVisibleDy = double.infinity;
+
+    for (final letter in [
+      ...List.generate(26, (i) => String.fromCharCode(65 + i)),
+      _miscSidebarLetter,
+    ]) {
+      final headerContext = _sectionKeys[letter]?.currentContext;
+      if (headerContext == null) {
+        continue;
+      }
+
+      final renderObject = headerContext.findRenderObject();
+      if (renderObject is! RenderBox || !renderObject.attached) {
+        continue;
+      }
+
+      final headerDy = renderObject.localToGlobal(Offset.zero).dy;
+      if (headerDy <= probeY && headerDy > nearestPassedDy) {
+        nearestPassedDy = headerDy;
+        nearestPassedLetter = letter;
+      }
+      if (headerDy < firstVisibleDy) {
+        firstVisibleDy = headerDy;
+        firstVisibleLetter = letter;
+      }
+    }
+
+    return nearestPassedLetter ?? firstVisibleLetter;
+  }
+
+  void _syncSidebarActiveLetterFromScroll() {
+    if (!_isAllAppsMode ||
+        _isScrollDrivenSidebarSyncSuppressed ||
+        _isSidebarInteractionActive) {
+      return;
+    }
+
+    final visibleLetter = _visibleSectionLetterFromScroll();
+    if (visibleLetter != null) {
+      _setSidebarActiveLetter(visibleLetter);
+    }
   }
 
   void _openAppDrawer({String? letter}) {
@@ -126,7 +224,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (!alreadyAtFavorites) {
       setState(() {
         _isAllAppsMode = false;
+        _sidebarActiveLetter = '★';
       });
+    } else {
+      _setSidebarActiveLetter('★');
     }
 
     if (hasClients) {
@@ -140,6 +241,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         );
       }
     }
+
+    _suppressScrollDrivenSidebarSync();
   }
 
   void _scheduleSectionJumpIfNeeded() {
@@ -175,18 +278,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       _pendingSectionLetter = null;
       _sectionJumpRetryCount = 0;
+      final jumpDuration = _pendingSectionJumpDuration;
       Scrollable.ensureVisible(
         sectionContext,
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
+        duration: jumpDuration,
+        curve: jumpDuration == Duration.zero
+            ? Curves.linear
+            : Curves.easeOutCubic,
         alignment: 0,
       );
     });
   }
 
-  void _scrollToSection(String letter) {
+  void _scrollToSection(
+    String letter, {
+    Duration duration = const Duration(milliseconds: 220),
+  }) {
     _pendingSectionLetter = letter;
+    _pendingSectionJumpDuration = duration;
     _sectionJumpRetryCount = 0;
+
+    _setSidebarActiveLetter(letter);
+    _suppressScrollDrivenSidebarSync();
 
     if (!_isAllAppsMode) {
       setState(() {
@@ -225,6 +338,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _scrollToSection(letter);
   }
 
+  void _onSidebarInteractionStart() {
+    if (_isSidebarInteractionActive) {
+      return;
+    }
+    setState(() {
+      _isSidebarInteractionActive = true;
+    });
+  }
+
   void _onSidebarLetterPreview(String letter) {
     if (letter == '#') {
       return;
@@ -233,16 +355,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (letter == '★') {
       final alreadyFavorites = !_isAllAppsMode;
       if (alreadyFavorites) {
+        _setSidebarActiveLetter('★');
         return;
       }
       _goToFavorites();
       return;
     }
 
-    _scrollToSection(letter);
+    final shouldUpdatePreview =
+        !_isSidebarInteractionActive ||
+        !_isAllAppsMode ||
+        _sidebarPreviewLetter != letter;
+
+    if (shouldUpdatePreview) {
+      setState(() {
+        _isSidebarInteractionActive = true;
+        _isAllAppsMode = true;
+        _sidebarPreviewLetter = letter;
+      });
+    }
+
+    _setSidebarActiveLetter(letter);
+    _suppressScrollDrivenSidebarSync(const Duration(milliseconds: 500));
   }
 
-  void _onSidebarInteractionEnd() {}
+  void _onSidebarInteractionEnd(String? releasedLetter) {
+    final candidateLetter = releasedLetter ?? _sidebarPreviewLetter;
+
+    if (_isSidebarInteractionActive || _sidebarPreviewLetter != null) {
+      setState(() {
+        _isSidebarInteractionActive = false;
+        _sidebarPreviewLetter = null;
+      });
+    }
+
+    if (candidateLetter == null ||
+        candidateLetter == '★' ||
+        candidateLetter == '#') {
+      _suppressScrollDrivenSidebarSync(const Duration(milliseconds: 120));
+      return;
+    }
+
+    _scrollToSection(
+      candidateLetter,
+      duration: const Duration(milliseconds: 140),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -273,18 +431,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       (index) => String.fromCharCode(65 + index),
       growable: false,
     );
-    final sidebarLetters = ['★', ...alphabetLetters, '#'];
+    final sectionLetters = [...alphabetLetters, _miscSidebarLetter];
+    final sidebarLetters = ['★', ...sectionLetters, '#'];
     // All letters are available since they all filter now
-    final availableSidebarLetters = {
-      '★',
-      ...List.generate(26, (i) => String.fromCharCode(65 + i)),
-      '#',
-    };
+    final availableSidebarLetters = {'★', ...sectionLetters, '#'};
 
     final groupedApps = {
-      for (final letter in alphabetLetters) letter: <AppInfo>[],
+      for (final letter in sectionLetters) letter: <AppInfo>[],
     };
-    final otherApps = <AppInfo>[];
     for (final app in apps) {
       final trimmed = app.name.trim();
       if (trimmed.isEmpty) {
@@ -294,7 +448,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (groupedApps.containsKey(firstChar)) {
         groupedApps[firstChar]!.add(app);
       } else {
-        otherApps.add(app);
+        groupedApps[_miscSidebarLetter]!.add(app);
       }
     }
 
@@ -310,6 +464,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       favoriteApps = const <AppInfo>[];
       sectionTitle = 'ALL APPS';
     }
+
+    final activePreviewLetter = _isAllAppsMode && _isSidebarInteractionActive
+        ? _sidebarPreviewLetter
+        : null;
+    final previewLetter =
+        activePreviewLetter != null &&
+            groupedApps.containsKey(activePreviewLetter)
+        ? activePreviewLetter
+        : null;
+    final showSinglePreviewSection = previewLetter != null;
+    final previewApps = previewLetter != null
+        ? groupedApps[previewLetter]!
+        : const <AppInfo>[];
 
     return PopScope(
       canPop: !_showAppDrawer,
@@ -499,9 +666,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     ),
                                   )
                               else if (groupedApps.values.every(
-                                    (letterApps) => letterApps.isEmpty,
-                                  ) &&
-                                  otherApps.isEmpty)
+                                (letterApps) => letterApps.isEmpty,
+                              ))
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
@@ -526,8 +692,70 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     ),
                                   ),
                                 )
+                              else if (showSinglePreviewSection)
+                                if (previewApps.isEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                    ),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.05,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        'No apps for "$previewLetter"',
+                                        style: TextStyle(
+                                          fontSize: 12 * scale,
+                                          color: Colors.white.withValues(
+                                            alpha: 0.45,
+                                          ),
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                else ...[
+                                  Padding(
+                                    key: _sectionKeys[previewLetter],
+                                    padding: const EdgeInsets.only(
+                                      left: 16,
+                                      top: 8,
+                                      bottom: 2,
+                                    ),
+                                    child: Text(
+                                      previewLetter,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white.withValues(
+                                          alpha: 0.35,
+                                        ),
+                                        letterSpacing: 1.0,
+                                      ),
+                                    ),
+                                  ),
+                                  ...previewApps.map(
+                                    (app) => Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                      ),
+                                      child: AppListTile(
+                                        app: app,
+                                        starred: identityCollectionContainsApp(
+                                          starredPackages,
+                                          app,
+                                        ),
+                                        showDivider: false,
+                                      ),
+                                    ),
+                                  ),
+                                ]
                               else
-                                ...alphabetLetters.expand((letter) {
+                                ...sectionLetters.expand((letter) {
                                   final letterApps = groupedApps[letter]!;
                                   if (letterApps.isEmpty) {
                                     return const <Widget>[];
@@ -570,41 +798,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     ),
                                   ];
                                 }),
-                                if (otherApps.isNotEmpty) ...[
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      left: 16,
-                                      top: 8,
-                                      bottom: 2,
-                                    ),
-                                    child: Text(
-                                      'OTHER',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white.withValues(
-                                          alpha: 0.35,
-                                        ),
-                                        letterSpacing: 1.0,
-                                      ),
-                                    ),
-                                  ),
-                                  ...otherApps.map(
-                                    (app) => Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                      ),
-                                      child: AppListTile(
-                                        app: app,
-                                        starred: identityCollectionContainsApp(
-                                          starredPackages,
-                                          app,
-                                        ),
-                                        showDivider: false,
-                                      ),
-                                    ),
-                                  ),
-                                ],
 
                               const SizedBox(height: 12),
                               SizedBox(height: navBarHeight + 80),
@@ -620,9 +813,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           child: AlphabetSidebar(
                             letters: sidebarLetters,
                             availableLetters: availableSidebarLetters,
+                            externallyActiveLetter: _sidebarActiveLetter,
                             onLetterChanged: _onSidebarLetterTap,
                             onLetterTap: _onSidebarLetterTap,
                             onLetterPreview: _onSidebarLetterPreview,
+                            onInteractionStart: _onSidebarInteractionStart,
                             onInteractionEnd: _onSidebarInteractionEnd,
                             underflowLetter: '★',
                             fontScaleFactor: scale,

@@ -6,7 +6,8 @@ import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 
 typedef OnLetterChanged = void Function(String letter);
-typedef OnSidebarInteractionEnd = void Function();
+typedef OnSidebarInteractionStart = void Function();
+typedef OnSidebarInteractionEnd = void Function(String? releasedLetter);
 
 class AlphabetSidebar extends StatefulWidget {
   const AlphabetSidebar({
@@ -18,12 +19,14 @@ class AlphabetSidebar extends StatefulWidget {
     required this.isScrolling,
     this.onLetterTap,
     this.onLetterPreview,
+    this.onInteractionStart,
     this.onInteractionEnd,
     this.underflowLetter,
     this.touchWidth = baseTouchWidth,
     this.itemWidth = defaultItemWidth,
     this.rightInset = 0.0,
     this.edgeActivationSlop = defaultEdgeActivationSlop,
+    this.externallyActiveLetter,
   });
 
   static const double baseTouchWidth = 44.0;
@@ -37,12 +40,14 @@ class AlphabetSidebar extends StatefulWidget {
   final bool isScrolling;
   final ValueChanged<String>? onLetterTap;
   final ValueChanged<String>? onLetterPreview;
+  final OnSidebarInteractionStart? onInteractionStart;
   final OnSidebarInteractionEnd? onInteractionEnd;
   final String? underflowLetter;
   final double touchWidth;
   final double itemWidth;
   final double rightInset;
   final double edgeActivationSlop;
+  final String? externallyActiveLetter;
 
   @override
   State<AlphabetSidebar> createState() => _AlphabetSidebarState();
@@ -57,6 +62,10 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
 
   static const _maxItemHeight = 24.0;
   static const _minItemHeight = 16.0;
+
+  Duration get _interactionAnimationDuration => _activePointerId == null
+      ? const Duration(milliseconds: 100)
+      : Duration.zero;
 
   double get _effectiveTouchWidth =>
       widget.touchWidth + widget.rightInset + widget.edgeActivationSlop;
@@ -143,6 +152,7 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
       return;
     }
     _activePointerId = event.pointer;
+    widget.onInteractionStart?.call();
     _updateTouchY(event.localPosition.dy);
     _previewLetter(event.localPosition, itemHeight);
   }
@@ -155,9 +165,19 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
     _previewLetter(event.localPosition, itemHeight);
   }
 
-  void _finishPointerInteraction(int pointerId, {bool triggerTap = false}) {
+  void _finishPointerInteraction(
+    int pointerId, {
+    Offset? localPosition,
+    double? itemHeight,
+    bool triggerTap = false,
+  }) {
     if (_activePointerId != pointerId) {
       return;
+    }
+
+    if (localPosition != null && itemHeight != null) {
+      _updateTouchY(localPosition.dy);
+      _previewLetter(localPosition, itemHeight);
     }
 
     final completedLetter = _activeLetter;
@@ -168,16 +188,16 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
       handler(completedLetter!);
     }
 
-    _endInteraction();
+    _endInteraction(completedLetter);
   }
 
-  void _endInteraction() {
+  void _endInteraction(String? completedLetter) {
     setState(() {
       _activeLetter = null;
       _touchY = null;
     });
     _hidePopup();
-    widget.onInteractionEnd?.call();
+    widget.onInteractionEnd?.call(completedLetter);
   }
 
   @override
@@ -193,9 +213,12 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
 
   @override
   Widget build(BuildContext context) {
-    final activeIndex = _activeLetter == null
+    final displayedActiveLetter = _activePointerId != null
+        ? _activeLetter
+        : (widget.externallyActiveLetter ?? _activeLetter);
+    final activeIndex = displayedActiveLetter == null
         ? -1
-        : widget.letters.indexOf(_activeLetter!);
+        : widget.letters.indexOf(displayedActiveLetter);
     final barOpacity = widget.isScrolling ? 0.4 : 1.0;
 
     return SafeArea(
@@ -206,6 +229,7 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
             final itemHeight = _calculateItemHeight(constraints.maxHeight);
             final indicatorTop =
                 (activeIndex < 0 ? 0 : activeIndex) * itemHeight;
+            final interactionAnimationDuration = _interactionAnimationDuration;
 
             return Stack(
               clipBehavior: Clip.none,
@@ -221,11 +245,12 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                         _startPointerInteraction(event, itemHeight),
                     onPointerMove: (event) =>
                         _updatePointerInteraction(event, itemHeight),
-                    onPointerUp: (event) =>
-                        _finishPointerInteraction(
-                          event.pointer,
-                          triggerTap: true,
-                        ),
+                    onPointerUp: (event) => _finishPointerInteraction(
+                      event.pointer,
+                      localPosition: event.localPosition,
+                      itemHeight: itemHeight,
+                      triggerTap: true,
+                    ),
                     onPointerCancel: (event) =>
                         _finishPointerInteraction(event.pointer),
                     child: SizedBox(
@@ -240,7 +265,7 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                               children: [
                                 if (activeIndex >= 0)
                                   AnimatedPositioned(
-                                    duration: const Duration(milliseconds: 100),
+                                    duration: interactionAnimationDuration,
                                     curve: Curves.easeOut,
                                     left: 0,
                                     top: indicatorTop,
@@ -272,6 +297,7 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                                             i,
                                             activeIndex,
                                             itemHeight,
+                                            interactionAnimationDuration,
                                           ),
                                         ),
                                       ),
@@ -288,7 +314,7 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
                 // Letter popup bubble - moves with touch
                 if (_showPopup && _activeLetter != null && _touchY != null)
                   AnimatedPositioned(
-                    duration: const Duration(milliseconds: 50),
+                    duration: interactionAnimationDuration,
                     curve: Curves.easeOut,
                     left: -90, // Curve outward from sidebar
                     top: (_touchY! - 22).clamp(
@@ -344,7 +370,12 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
     );
   }
 
-  Widget _buildLetterWidget(int index, int activeIndex, double itemHeight) {
+  Widget _buildLetterWidget(
+    int index,
+    int activeIndex,
+    double itemHeight,
+    Duration animationDuration,
+  ) {
     final letter = widget.letters[index];
     final isActive = activeIndex == index;
     final isEnabled = _isEnabledLetter(letter);
@@ -387,15 +418,15 @@ class _AlphabetSidebarState extends State<AlphabetSidebar> {
     final fontSize = baseFontSize * scaleFactor;
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 100),
+      duration: animationDuration,
       curve: Curves.easeOut,
       transform: Matrix4.translationValues(offsetX, 0, 0),
       child: AnimatedScale(
-        duration: const Duration(milliseconds: 95),
+        duration: animationDuration,
         curve: Curves.easeOut,
         scale: isActive ? 1.3 : 1.0,
         child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 95),
+          duration: animationDuration,
           curve: Curves.easeOut,
           opacity: opacity,
           child: isSettings
