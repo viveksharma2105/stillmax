@@ -422,6 +422,18 @@ class AppService {
     }
   }
 
+  Future<bool> requestLocationPermission() async {
+    try {
+      final bool? granted = await _channel.invokeMethod<bool>(
+        'requestLocationPermission',
+      );
+      return granted ?? false;
+    } on PlatformException catch (e) {
+      debugPrint('Location permission error: ${e.message}');
+      return false;
+    }
+  }
+
   Future<bool> isNotificationListenerEnabled() async {
     try {
       final bool? enabled = await _channel.invokeMethod<bool>(

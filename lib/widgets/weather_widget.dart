@@ -319,6 +319,16 @@ class _WeatherWidgetState extends ConsumerState<WeatherWidget> {
   @override
   void initState() {
     super.initState();
+    Future<void>.microtask(_ensureLocationPermissionAndRefresh);
+  }
+
+  Future<void> _ensureLocationPermissionAndRefresh() async {
+    final appService = ref.read(appServiceProvider);
+    await appService.requestLocationPermission();
+    if (!mounted) {
+      return;
+    }
+    ref.invalidate(weatherInfoProvider);
   }
 
   @override
@@ -343,9 +353,9 @@ class _WeatherWidgetState extends ConsumerState<WeatherWidget> {
     final cityName = weather?.cityName;
 
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
         ref.read(weatherRefreshingProvider.notifier).state = true;
-        ref.invalidate(weatherInfoProvider);
+        await _ensureLocationPermissionAndRefresh();
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

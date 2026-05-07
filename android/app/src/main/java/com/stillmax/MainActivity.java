@@ -83,6 +83,7 @@ public class MainActivity extends FlutterActivity {
     private static final int REQUEST_BIND_APPWIDGET = 7101;
     private static final int REQUEST_CONFIGURE_APPWIDGET = 7102;
     private static final int REQUEST_POST_NOTIFICATIONS = 7103;
+    private static final int REQUEST_LOCATION_PERMISSION = 7104;
     private static final int INVALID_APP_WIDGET_ID = -1;
     private static final int WALLPAPER_PREVIEW_MAX_DIMENSION = 1440;
     private static final int WALLPAPER_MAX_BYTES = 8 * 1024 * 1024;
@@ -97,6 +98,7 @@ public class MainActivity extends FlutterActivity {
     private AppWidgetManager appWidgetManager;
     private MethodChannel.Result pendingBindResult;
     private MethodChannel.Result pendingNotificationPermissionResult;
+    private MethodChannel.Result pendingLocationPermissionResult;
     private int pendingWidgetId = INVALID_APP_WIDGET_ID;
     private AppWidgetProviderInfo pendingProviderInfo;
     private boolean widgetViewFactoryRegistered = false;
@@ -253,6 +255,9 @@ public class MainActivity extends FlutterActivity {
                         case "requestNotificationPermission":
                             requestNotificationPermission(result);
                             break;
+                        case "requestLocationPermission":
+                            requestLocationPermission(result);
+                            break;
                         case "isNotificationListenerEnabled":
                             result.success(isNotificationListenerEnabled());
                             break;
@@ -282,6 +287,45 @@ public class MainActivity extends FlutterActivity {
 
         pendingNotificationPermissionResult = result;
         requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQUEST_POST_NOTIFICATIONS);
+    }
+
+    private void requestLocationPermission(MethodChannel.Result result) {
+        final boolean hasFine = ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED;
+        final boolean hasCoarse = ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED;
+
+        if (hasFine) {
+            result.success(true);
+            return;
+        }
+
+        if (pendingLocationPermissionResult != null) {
+            result.error("PERMISSION_IN_PROGRESS", "Location permission request already in progress", null);
+            return;
+        }
+
+        if (hasCoarse) {
+            pendingLocationPermissionResult = result;
+            requestPermissions(
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    REQUEST_LOCATION_PERMISSION
+            );
+            return;
+        }
+
+        pendingLocationPermissionResult = result;
+        requestPermissions(
+                new String[]{
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                },
+                REQUEST_LOCATION_PERMISSION
+        );
     }
 
     private boolean isNotificationListenerEnabled() {
@@ -834,6 +878,24 @@ public class MainActivity extends FlutterActivity {
             }
 
             boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            callback.success(granted);
+            return;
+        }
+
+        if (requestCode == REQUEST_LOCATION_PERMISSION) {
+            MethodChannel.Result callback = pendingLocationPermissionResult;
+            pendingLocationPermissionResult = null;
+            if (callback == null) {
+                return;
+            }
+
+            boolean granted = false;
+            for (int grantResult : grantResults) {
+                if (grantResult == PackageManager.PERMISSION_GRANTED) {
+                    granted = true;
+                    break;
+                }
+            }
             callback.success(granted);
         }
     }

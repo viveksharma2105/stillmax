@@ -346,6 +346,7 @@ class _StillmaxSettingsScreenState
     final scale = settings?.fontScaleFactor ?? 1.0;
     final clockStyle = settings?.clockStyle ?? 'digital';
     final showWeatherWidget = settings?.showWeatherWidget ?? true;
+    final leftWidgetSlotId = settings?.leftWidgetSlotId;
     final rightWidgetSlotId = settings?.rightWidgetSlotId;
     final iconTheme = ref.watch(iconThemeProvider);
     final iconColorFilter = IconThemeService.getColorFilterForTheme(iconTheme);
@@ -374,17 +375,175 @@ class _StillmaxSettingsScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-              // Favourites Manager
-              _SectionTitle(title: 'Manage Favourites', scale: scale),
-              Text(
-                'Up to 8 apps',
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                  fontSize: 12 * scale,
+                // Favourites Manager
+                _SectionTitle(title: 'Manage Favourites', scale: scale),
+                Text(
+                  'Up to 8 apps',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    fontSize: 12 * scale,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              if (starredApps.isEmpty)
+                const SizedBox(height: 12),
+                if (starredApps.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceContainerHigh.withValues(
+                        alpha: 0.42,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'No favourites yet',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                        fontSize: 14 * scale,
+                      ),
+                    ),
+                  )
+                else
+                  for (final app in starredApps)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainerHigh.withValues(
+                          alpha: 0.42,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              color: AppColors.surfaceContainerHigh,
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: app.icon.isNotEmpty
+                                  ? ColorFiltered(
+                                      colorFilter: iconColorFilter,
+                                      child: Image.memory(
+                                        app.icon,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    )
+                                  : const Icon(Icons.apps),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              app.name,
+                              style: AppTypography.bodyLarge.copyWith(
+                                color: AppColors.onSurface,
+                                fontSize: 15 * scale,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.delete_outline,
+                              color: AppColors.error,
+                            ),
+                            onPressed: () => unawaited(_removeFavourite(app)),
+                          ),
+                        ],
+                      ),
+                    ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: starredApps.length >= kMaxStarredApps
+                        ? null
+                        : () => unawaited(_addFavourite()),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add app to favourites'),
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // Wallpaper Section
+                _SectionTitle(title: 'Wallpaper', scale: scale),
+                Text(
+                  'Use a Stillmax wallpaper override, or follow Android default wallpaper behavior',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    fontSize: 12 * scale,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _WallpaperPreview(scale: scale),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => unawaited(_pickWallpaper()),
+                        icon: const Icon(Icons.photo_library),
+                        label: const Text('Replace Wallpaper'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => unawaited(_makeWallpaperDefault()),
+                        icon: const Icon(Icons.wallpaper),
+                        label: const Text('Make Default'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.surfaceContainerHigh
+                              .withValues(alpha: 0.42),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    onPressed: () => unawaited(_resetWallpaper()),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Reset/Clear Stillmax Override'),
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // Layout Section
+                _SectionTitle(title: 'Layout', scale: scale),
+                Text(
+                  'Adjust spacing between sections',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    fontSize: 12 * scale,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => unawaited(_enterLayoutAdjustMode()),
+                    icon: const Icon(Icons.tune),
+                    label: const Text('Adjust Layout Spacing'),
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // Weather Section
+                _SectionTitle(title: 'Weather', scale: scale),
+                Text(
+                  'Show weather widget in the time header',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    fontSize: 12 * scale,
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -393,376 +552,235 @@ class _StillmaxSettingsScreenState
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    'No favourites yet',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.onSurfaceVariant,
-                      fontSize: 14 * scale,
-                    ),
-                  ),
-                )
-              else
-                for (final app in starredApps)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerHigh.withValues(
-                        alpha: 0.42,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: AppColors.surfaceContainerHigh,
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: app.icon.isNotEmpty
-                                ? ColorFiltered(
-                                    colorFilter: iconColorFilter,
-                                    child: Image.memory(
-                                      app.icon,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  )
-                                : const Icon(Icons.apps),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            app.name,
-                            style: AppTypography.bodyLarge.copyWith(
-                              color: AppColors.onSurface,
-                              fontSize: 15 * scale,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Weather widget',
+                              style: AppTypography.bodyLarge.copyWith(
+                                color: AppColors.onSurface,
+                                fontSize: 15 * scale,
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 4),
+                            Text(
+                              showWeatherWidget ? 'On' : 'Off',
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.onSurfaceVariant,
+                                fontSize: 12 * scale,
+                              ),
+                            ),
+                          ],
                         ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.delete_outline,
-                            color: AppColors.error,
-                          ),
-                          onPressed: () => unawaited(_removeFavourite(app)),
-                        ),
-                      ],
-                    ),
+                      ),
+                      Switch.adaptive(
+                        value: showWeatherWidget,
+                        onChanged: (value) =>
+                            unawaited(_updateShowWeatherWidget(value)),
+                        activeThumbColor: AppColors.secondary,
+                      ),
+                    ],
                   ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: starredApps.length >= kMaxStarredApps
+                ),
+                const SizedBox(height: 32),
+
+                // Header Widget Slots
+                _SectionTitle(title: 'Header Widget Slots', scale: scale),
+                const SizedBox(height: 12),
+                _HeaderWidgetSlotCard(
+                  title: 'Left Widget Slot',
+                  widgetId: leftWidgetSlotId,
+                  onAdd: () => unawaited(_addHeaderWidgetSlot(true)),
+                  onRemove: leftWidgetSlotId == null
                       ? null
-                      : () => unawaited(_addFavourite()),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add app to favourites'),
+                      : () => unawaited(
+                          _removeHeaderWidgetSlot(leftWidgetSlotId, true),
+                        ),
+                  scale: scale,
                 ),
-              ),
-              const SizedBox(height: 32),
+                const SizedBox(height: 12),
+                _HeaderWidgetSlotCard(
+                  title: 'Right Widget Slot',
+                  widgetId: rightWidgetSlotId,
+                  onAdd: () => unawaited(_addHeaderWidgetSlot(false)),
+                  onRemove: rightWidgetSlotId == null
+                      ? null
+                      : () => unawaited(
+                          _removeHeaderWidgetSlot(rightWidgetSlotId, false),
+                        ),
+                  scale: scale,
+                ),
+                const SizedBox(height: 32),
 
-              // Wallpaper Section
-              _SectionTitle(title: 'Wallpaper', scale: scale),
-              Text(
-                'Use a Stillmax wallpaper override, or follow Android default wallpaper behavior',
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                  fontSize: 12 * scale,
-                ),
-              ),
-              const SizedBox(height: 12),
-              _WallpaperPreview(scale: scale),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => unawaited(_pickWallpaper()),
-                      icon: const Icon(Icons.photo_library),
-                      label: const Text('Replace Wallpaper'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => unawaited(_makeWallpaperDefault()),
-                      icon: const Icon(Icons.wallpaper),
-                      label: const Text('Make Default'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.surfaceContainerHigh
-                            .withValues(alpha: 0.42),
+                // Icon Theme Section
+                _SectionTitle(title: 'Icon Theme', scale: scale),
+                const SizedBox(height: 12),
+                GridView.count(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 100 / 90,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: [
+                    for (final theme in AppIconTheme.values)
+                      _IconThemeCard(
+                        theme: theme,
+                        selected: theme == iconTheme,
+                        previewApps: apps.take(3).toList(growable: false),
+                        onTap: () => unawaited(_updateIconTheme(theme)),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: TextButton.icon(
-                  onPressed: () => unawaited(_resetWallpaper()),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Reset/Clear Stillmax Override'),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 32),
+                const SizedBox(height: 32),
 
-              // Layout Section
-              _SectionTitle(title: 'Layout', scale: scale),
-              Text(
-                'Adjust spacing between sections',
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                  fontSize: 12 * scale,
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => unawaited(_enterLayoutAdjustMode()),
-                  icon: const Icon(Icons.tune),
-                  label: const Text('Adjust Layout Spacing'),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Weather Section
-              _SectionTitle(title: 'Weather', scale: scale),
-              Text(
-                'Show weather widget in the time header',
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                  fontSize: 12 * scale,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerHigh.withValues(alpha: 0.42),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
+                // Clock Style Section
+                _SectionTitle(title: 'Clock Style', scale: scale),
+                const SizedBox(height: 12),
+                Row(
                   children: [
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Weather widget',
-                            style: AppTypography.bodyLarge.copyWith(
-                              color: AppColors.onSurface,
-                              fontSize: 15 * scale,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            showWeatherWidget ? 'On' : 'Off',
-                            style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.onSurfaceVariant,
-                              fontSize: 12 * scale,
-                            ),
-                          ),
-                        ],
+                      child: _ClockStyleOption(
+                        label: 'Digital',
+                        value: 'digital',
+                        selected: clockStyle == 'digital',
+                        onTap: () => unawaited(_updateClockStyle('digital')),
+                        scale: scale,
                       ),
                     ),
-                    Switch.adaptive(
-                      value: showWeatherWidget,
-                      onChanged: (value) =>
-                          unawaited(_updateShowWeatherWidget(value)),
-                      activeThumbColor: AppColors.secondary,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _ClockStyleOption(
+                        label: 'Digital Thin',
+                        value: 'digital_thin',
+                        selected: clockStyle == 'digital_thin',
+                        onTap: () =>
+                            unawaited(_updateClockStyle('digital_thin')),
+                        scale: scale,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _ClockStyleOption(
+                        label: 'Analog',
+                        value: 'analog',
+                        selected: clockStyle == 'analog',
+                        onTap: () => unawaited(_updateClockStyle('analog')),
+                        scale: scale,
+                      ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 32),
+                const SizedBox(height: 32),
 
-              // Header Widget Slots
-              _SectionTitle(title: 'Header Widget Slots', scale: scale),
-              const SizedBox(height: 12),
-              _HeaderWidgetSlotCard(
-                title: 'Right Widget Slot',
-                widgetId: rightWidgetSlotId,
-                onAdd: () => unawaited(_addHeaderWidgetSlot(false)),
-                onRemove: rightWidgetSlotId == null
-                    ? null
-                    : () => unawaited(
-                        _removeHeaderWidgetSlot(rightWidgetSlotId, false),
-                      ),
-                scale: scale,
-              ),
-              const SizedBox(height: 32),
-
-              // Icon Theme Section
-              _SectionTitle(title: 'Icon Theme', scale: scale),
-              const SizedBox(height: 12),
-              GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 100 / 90,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  for (final theme in AppIconTheme.values)
-                    _IconThemeCard(
-                      theme: theme,
-                      selected: theme == iconTheme,
-                      previewApps: apps.take(3).toList(growable: false),
-                      onTap: () => unawaited(_updateIconTheme(theme)),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 32),
-
-              // Clock Style Section
-              _SectionTitle(title: 'Clock Style', scale: scale),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _ClockStyleOption(
-                      label: 'Digital',
-                      value: 'digital',
-                      selected: clockStyle == 'digital',
-                      onTap: () => unawaited(_updateClockStyle('digital')),
-                      scale: scale,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _ClockStyleOption(
-                      label: 'Digital Thin',
-                      value: 'digital_thin',
-                      selected: clockStyle == 'digital_thin',
-                      onTap: () => unawaited(_updateClockStyle('digital_thin')),
-                      scale: scale,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _ClockStyleOption(
-                      label: 'Analog',
-                      value: 'analog',
-                      selected: clockStyle == 'analog',
-                      onTap: () => unawaited(_updateClockStyle('analog')),
-                      scale: scale,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-
-              // Font Section
-              _SectionTitle(title: 'App Font Size', scale: scale),
-              const SizedBox(height: 12),
-              _FontSizeOption(
-                label: 'Small',
-                value: 0.85,
-                selected: (scale - 0.85).abs() < 0.01,
-                onTap: () => unawaited(_updateFontSize(0.85)),
-                scale: scale,
-              ),
-              const SizedBox(height: 8),
-              _FontSizeOption(
-                label: 'Medium',
-                value: 1.0,
-                selected: (scale - 1.0).abs() < 0.01,
-                onTap: () => unawaited(_updateFontSize(1.0)),
-                scale: scale,
-              ),
-              const SizedBox(height: 8),
-              _FontSizeOption(
-                label: 'Large',
-                value: 1.15,
-                selected: (scale - 1.15).abs() < 0.01,
-                onTap: () => unawaited(_updateFontSize(1.15)),
-                scale: scale,
-              ),
-              const SizedBox(height: 32),
-
-              // Black Box Section
-              _SectionTitle(title: 'Black Box', scale: scale),
-              Text(
-                'Hide apps in a password-protected vault',
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                  fontSize: 12 * scale,
+                // Font Section
+                _SectionTitle(title: 'App Font Size', scale: scale),
+                const SizedBox(height: 12),
+                _FontSizeOption(
+                  label: 'Small',
+                  value: 0.85,
+                  selected: (scale - 0.85).abs() < 0.01,
+                  onTap: () => unawaited(_updateFontSize(0.85)),
+                  scale: scale,
                 ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerHigh.withValues(alpha: 0.42),
-                  borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 8),
+                _FontSizeOption(
+                  label: 'Medium',
+                  value: 1.0,
+                  selected: (scale - 1.0).abs() < 0.01,
+                  onTap: () => unawaited(_updateFontSize(1.0)),
+                  scale: scale,
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.secondary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.lock_outline,
-                        color: AppColors.secondary,
-                      ),
+                const SizedBox(height: 8),
+                _FontSizeOption(
+                  label: 'Large',
+                  value: 1.15,
+                  selected: (scale - 1.15).abs() < 0.01,
+                  onTap: () => unawaited(_updateFontSize(1.15)),
+                  scale: scale,
+                ),
+                const SizedBox(height: 32),
+
+                // Black Box Section
+                _SectionTitle(title: 'Black Box', scale: scale),
+                Text(
+                  'Hide apps in a password-protected vault',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    fontSize: 12 * scale,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerHigh.withValues(
+                      alpha: 0.42,
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Hidden Apps Vault',
-                            style: AppTypography.bodyLarge.copyWith(
-                              fontSize: 15 * scale,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppColors.secondary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.lock_outline,
+                          color: AppColors.secondary,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Hidden Apps Vault',
+                              style: AppTypography.bodyLarge.copyWith(
+                                fontSize: 15 * scale,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Tap media player 4x to access',
-                            style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.onSurfaceVariant,
-                              fontSize: 12 * scale,
+                            const SizedBox(height: 4),
+                            Text(
+                              'Tap media player 4x to access',
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.onSurfaceVariant,
+                                fontSize: 12 * scale,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    TextButton(
-                      onPressed: () => unawaited(_openBlackBoxSettings()),
-                      child: const Text('Manage'),
-                    ),
-                  ],
+                      TextButton(
+                        onPressed: () => unawaited(_openBlackBoxSettings()),
+                        child: const Text('Manage'),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 32),
+                const SizedBox(height: 32),
 
-              // About Section
-              _SectionTitle(title: 'About', scale: scale),
-              const SizedBox(height: 12),
-              ListTile(
-                title: const Text('Version'),
-                subtitle: const Text('1.0.0'),
-                tileColor: AppColors.surfaceContainerHigh.withValues(
-                  alpha: 0.42,
+                // About Section
+                _SectionTitle(title: 'About', scale: scale),
+                const SizedBox(height: 12),
+                ListTile(
+                  title: const Text('Version'),
+                  subtitle: const Text('1.0.0'),
+                  tileColor: AppColors.surfaceContainerHigh.withValues(
+                    alpha: 0.42,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              const SizedBox(height: 80),
+                const SizedBox(height: 80),
               ],
             ),
           ),
@@ -911,9 +929,17 @@ class _HeaderWidgetSlotCard extends StatelessWidget {
               ],
             ),
           ),
-          TextButton(onPressed: onAdd, child: const Text('Add')),
-          if (onRemove != null)
-            TextButton(onPressed: onRemove, child: const Text('Remove')),
+          Wrap(
+            spacing: 4,
+            children: [
+              TextButton(
+                onPressed: onAdd,
+                child: Text(widgetId == null ? 'Add' : 'Replace'),
+              ),
+              if (onRemove != null)
+                TextButton(onPressed: onRemove, child: const Text('Remove')),
+            ],
+          ),
         ],
       ),
     );
