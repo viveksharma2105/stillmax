@@ -264,8 +264,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       final sectionContext = _sectionKeys[targetLetter]?.currentContext;
       if (sectionContext == null) {
-        if (_sectionJumpRetryCount < 1) {
-          // Retry once on next frame in case section keys mount slightly later.
+        if (_sectionJumpRetryCount < 4) {
+          // Retry a few frames in case the full list remounts after preview mode.
           _sectionJumpRetryCount++;
           _scheduleSectionJumpIfNeeded();
           return;
@@ -396,10 +396,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return;
     }
 
-    _scrollToSection(
-      candidateLetter,
-      duration: const Duration(milliseconds: 140),
-    );
+    _scrollToSection(candidateLetter, duration: Duration.zero);
   }
 
   @override
@@ -720,7 +717,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   )
                                 else ...[
                                   Padding(
-                                    key: _sectionKeys[previewLetter],
                                     padding: const EdgeInsets.only(
                                       left: 16,
                                       top: 8,
