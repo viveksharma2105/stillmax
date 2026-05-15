@@ -180,7 +180,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _syncSidebarActiveLetterFromScroll() {
     if (!_isAllAppsMode ||
         _isScrollDrivenSidebarSyncSuppressed ||
-        _isSidebarInteractionActive) {
+        _isSidebarInteractionActive ||
+        _pendingSectionLetter != null) {
       return;
     }
 
