@@ -397,7 +397,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return;
     }
 
-    _scrollToSection(candidateLetter, duration: Duration.zero);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _scrollToSection(candidateLetter, duration: Duration.zero);
+    });
   }
 
   @override
