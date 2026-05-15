@@ -580,123 +580,102 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               _openAppDrawer();
                             }
                           },
-                          child: ListView(
+                          child: SingleChildScrollView(
                             controller: _appsScrollController,
                             physics: !_isAllAppsMode
                                 ? const NeverScrollableScrollPhysics()
                                 : const ClampingScrollPhysics(),
                             padding: EdgeInsets.zero,
-                            children: [
-                              SizedBox(height: favoritesSpacing),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                SizedBox(height: favoritesSpacing),
 
-                              // Section header with crossfade transition
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 16,
-                                  top: 4,
-                                  bottom: 2,
-                                ),
-                                child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 200),
-                                  child: Row(
-                                    key: ValueKey(sectionTitle),
-                                    children: [
-                                      if (!_isAllAppsMode) ...[
-                                        Icon(
-                                          Icons.star,
-                                          color: AppColors.secondary,
-                                          size: 16,
-                                        ),
-                                        const SizedBox(width: 6),
-                                      ],
-                                      Text(
-                                        sectionTitle,
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white.withValues(
-                                            alpha: 0.35,
-                                          ),
-                                          letterSpacing: 1.0,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-
-                              // App tiles
-                              if (!_isAllAppsMode)
-                                if (favoriteApps.isEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                    ),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.05,
-                                        ),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        'No favourites yet. Manage favourites in Stillmax Settings.',
-                                        style: TextStyle(
-                                          fontSize: 12 * scale,
-                                          color: Colors.white.withValues(
-                                            alpha: 0.45,
-                                          ),
-                                          fontStyle: FontStyle.italic,
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                else
-                                  ...favoriteApps.map(
-                                    (app) => Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                      ),
-                                      child: AppListTile(
-                                        app: app,
-                                        starred: identityCollectionContainsApp(
-                                          starredPackages,
-                                          app,
-                                        ),
-                                        showDivider: false,
-                                      ),
-                                    ),
-                                  )
-                              else if (groupedApps.values.every(
-                                (letterApps) => letterApps.isEmpty,
-                              ))
+                                // Section header with crossfade transition
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
+                                  padding: const EdgeInsets.only(
+                                    left: 16,
+                                    top: 4,
+                                    bottom: 2,
                                   ),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.05,
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      'No apps available',
-                                      style: TextStyle(
-                                        fontSize: 12 * scale,
-                                        color: Colors.white.withValues(
-                                          alpha: 0.45,
+                                  child: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 200),
+                                    child: Row(
+                                      key: ValueKey(sectionTitle),
+                                      children: [
+                                        if (!_isAllAppsMode) ...[
+                                          Icon(
+                                            Icons.star,
+                                            color: AppColors.secondary,
+                                            size: 16,
+                                          ),
+                                          const SizedBox(width: 6),
+                                        ],
+                                        Text(
+                                          sectionTitle,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white.withValues(
+                                              alpha: 0.35,
+                                            ),
+                                            letterSpacing: 1.0,
+                                          ),
                                         ),
-                                        fontStyle: FontStyle.italic,
-                                      ),
+                                      ],
                                     ),
                                   ),
-                                )
-                              else if (showSinglePreviewSection)
-                                if (previewApps.isEmpty)
+                                ),
+
+                                // App tiles
+                                if (!_isAllAppsMode)
+                                  if (favoriteApps.isEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                      ),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.05,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'No favourites yet. Manage favourites in Stillmax Settings.',
+                                          style: TextStyle(
+                                            fontSize: 12 * scale,
+                                            color: Colors.white.withValues(
+                                              alpha: 0.45,
+                                            ),
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    ...favoriteApps.map(
+                                      (app) => Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                        ),
+                                        child: AppListTile(
+                                          app: app,
+                                          starred:
+                                              identityCollectionContainsApp(
+                                                starredPackages,
+                                                app,
+                                              ),
+                                          showDivider: false,
+                                        ),
+                                      ),
+                                    )
+                                else if (groupedApps.values.every(
+                                  (letterApps) => letterApps.isEmpty,
+                                ))
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 16,
@@ -710,7 +689,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
-                                        'No apps for "$previewLetter"',
+                                        'No apps available',
                                         style: TextStyle(
                                           fontSize: 12 * scale,
                                           color: Colors.white.withValues(
@@ -721,57 +700,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       ),
                                     ),
                                   )
-                                else ...[
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      left: 16,
-                                      top: 8,
-                                      bottom: 2,
-                                    ),
-                                    child: Text(
-                                      previewLetter,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white.withValues(
-                                          alpha: 0.35,
-                                        ),
-                                        letterSpacing: 1.0,
-                                      ),
-                                    ),
-                                  ),
-                                  ...previewApps.map(
-                                    (app) => Padding(
+                                else if (showSinglePreviewSection)
+                                  if (previewApps.isEmpty)
+                                    Padding(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 16,
                                       ),
-                                      child: AppListTile(
-                                        app: app,
-                                        starred: identityCollectionContainsApp(
-                                          starredPackages,
-                                          app,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.05,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                         ),
-                                        showDivider: false,
+                                        child: Text(
+                                          'No apps for "$previewLetter"',
+                                          style: TextStyle(
+                                            fontSize: 12 * scale,
+                                            color: Colors.white.withValues(
+                                              alpha: 0.45,
+                                            ),
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                ]
-                              else
-                                ...sectionLetters.expand((letter) {
-                                  final letterApps = groupedApps[letter]!;
-                                  if (letterApps.isEmpty) {
-                                    return const <Widget>[];
-                                  }
-                                  return [
+                                    )
+                                  else ...[
                                     Padding(
-                                      key: _sectionKeys[letter],
                                       padding: const EdgeInsets.only(
                                         left: 16,
                                         top: 8,
                                         bottom: 2,
                                       ),
                                       child: Text(
-                                        letter,
+                                        previewLetter,
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
@@ -782,7 +747,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         ),
                                       ),
                                     ),
-                                    ...letterApps.map(
+                                    ...previewApps.map(
                                       (app) => Padding(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 16,
@@ -798,12 +763,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         ),
                                       ),
                                     ),
-                                  ];
-                                }),
+                                  ]
+                                else
+                                  ...sectionLetters.expand((letter) {
+                                    final letterApps = groupedApps[letter]!;
+                                    if (letterApps.isEmpty) {
+                                      return const <Widget>[];
+                                    }
+                                    return [
+                                      Padding(
+                                        key: _sectionKeys[letter],
+                                        padding: const EdgeInsets.only(
+                                          left: 16,
+                                          top: 8,
+                                          bottom: 2,
+                                        ),
+                                        child: Text(
+                                          letter,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white.withValues(
+                                              alpha: 0.35,
+                                            ),
+                                            letterSpacing: 1.0,
+                                          ),
+                                        ),
+                                      ),
+                                      ...letterApps.map(
+                                        (app) => Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                          ),
+                                          child: AppListTile(
+                                            app: app,
+                                            starred:
+                                                identityCollectionContainsApp(
+                                                  starredPackages,
+                                                  app,
+                                                ),
+                                            showDivider: false,
+                                          ),
+                                        ),
+                                      ),
+                                    ];
+                                  }),
 
-                              const SizedBox(height: 12),
-                              SizedBox(height: navBarHeight + 80),
-                            ],
+                                const SizedBox(height: 12),
+                                SizedBox(height: navBarHeight + 80),
+                              ],
+                            ),
                           ),
                         ),
 
