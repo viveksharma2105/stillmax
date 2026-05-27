@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../services/app_service.dart';
 import '../services/icon_cache.dart';
@@ -140,7 +141,7 @@ class _GridAppIconState extends ConsumerState<GridAppIcon> {
               borderRadius: _borderRadiusForIcon(),
               color: bgColor,
             ),
-            child: Icon(
+            child: FaIcon(
               iconData,
               size: widget.iconSize * 0.5,
               color: Colors.white,
@@ -337,7 +338,7 @@ class FolderIcon extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(6),
                         color: bgColor,
                       ),
-                      child: Icon(iconData, size: 11, color: Colors.white),
+                      child: FaIcon(iconData, size: 11, color: Colors.white),
                     );
                     break;
 
@@ -501,7 +502,7 @@ class _DockIconWithTheme extends ConsumerWidget {
             borderRadius: BorderRadius.circular(8),
             color: bgColor,
           ),
-          child: Icon(iconData, size: 16, color: Colors.white),
+          child: FaIcon(iconData, size: 16, color: Colors.white),
         );
 
       case AppIconTheme.cute:

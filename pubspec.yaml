@@ -48,8 +48,8 @@ dependencies:
   
   # Icon libraries
   flutter_svg: ^2.0.0
-  font_awesome_flutter: ^10.7.0
-  lucide_icons: ^0.257.0
+  font_awesome_flutter: ^11.0.0
+  lucide_flutter: ^1.16.0
   
   # Media and intents
   image_picker: ^1.1.2

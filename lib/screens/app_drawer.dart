@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../services/app_service.dart';
 import '../services/icon_resolver.dart';
@@ -595,7 +596,7 @@ class _AppItem extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
               color: bgColor,
             ),
-            child: Icon(iconData, size: 20, color: Colors.white),
+            child: FaIcon(iconData, size: 20, color: Colors.white),
           );
 
         case AppIconTheme.cute:

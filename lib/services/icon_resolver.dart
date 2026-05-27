@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_flutter/lucide_flutter.dart';
 
 /// Maps package names to FontAwesome icons for the "fun" theme
-final Map<String, IconData> funIconMap = {
+final Map<String, FaIconData> funIconMap = {
   // Browsers
   'com.android.chrome': FontAwesomeIcons.chrome,
   'org.mozilla.firefox': FontAwesomeIcons.firefoxBrowser,
@@ -109,7 +109,7 @@ final Map<String, IconData> funIconMap = {
 /// Maps package names to Lucide icons for the "cute" theme
 final Map<String, IconData> cuteIconMap = {
   // Browsers
-  'com.android.chrome': LucideIcons.chrome,
+  'com.android.chrome': LucideIcons.globe,
   'org.mozilla.firefox': LucideIcons.globe,
   'com.opera.browser': LucideIcons.globe2,
   'com.brave.browser': LucideIcons.shield,
@@ -124,21 +124,21 @@ final Map<String, IconData> cuteIconMap = {
   'com.snapchat.android': LucideIcons.ghost,
   'org.telegram.messenger': LucideIcons.send,
   'com.discord': LucideIcons.hash,
-  'com.slack': LucideIcons.slack,
+  'com.slack': LucideIcons.messageSquare,
   'com.skype.raider': LucideIcons.video,
-  'com.linkedin.android': LucideIcons.linkedin,
+  'com.linkedin.android': LucideIcons.users,
   'com.reddit.frontpage': LucideIcons.messagesSquare,
   'com.zhiliaoapp.musically': LucideIcons.music,
 
   // Media & Entertainment
-  'com.google.android.youtube': LucideIcons.youtube,
+  'com.google.android.youtube': LucideIcons.video,
   'com.spotify.music': LucideIcons.music2,
   'com.netflix.mediaclient': LucideIcons.tv,
   'com.amazon.avod.thirdpartyclient': LucideIcons.film,
   'com.soundcloud.android': LucideIcons.radio,
   'com.vimeo.android.videoapp': LucideIcons.video,
-  'com.twitch.android.app': LucideIcons.twitch,
-  'com.google.android.apps.youtube.music': LucideIcons.music,
+  'com.twitch.android.app': LucideIcons.tv,
+  'com.google.android.apps.youtube.music': LucideIcons.video,
 
   // Productivity
   'com.google.android.gm': LucideIcons.mail,
@@ -148,7 +148,7 @@ final Map<String, IconData> cuteIconMap = {
   'com.evernote': LucideIcons.bookMarked,
   'com.notion.id': LucideIcons.bookOpen,
   'com.todoist': LucideIcons.checkSquare,
-  'com.trello': LucideIcons.trello,
+  'com.trello': LucideIcons.kanban,
   'com.asana.app': LucideIcons.listChecks,
 
   // Shopping
@@ -163,8 +163,8 @@ final Map<String, IconData> cuteIconMap = {
   'com.coinbase.android': LucideIcons.bitcoin,
 
   // Development
-  'com.github.android': LucideIcons.github,
-  'com.gitlab.android': LucideIcons.gitlab,
+  'com.github.android': LucideIcons.code,
+  'com.gitlab.android': LucideIcons.code,
   'com.bitbucket.mobile': LucideIcons.code,
   'com.termux': LucideIcons.terminal,
 
@@ -211,7 +211,7 @@ final Map<String, IconData> cuteIconMap = {
 };
 
 /// Fallback icon for fun theme
-const IconData funFallbackIcon = FontAwesomeIcons.squareCheck;
+const FaIconData funFallbackIcon = FontAwesomeIcons.squareCheck;
 
 /// Fallback icon for cute theme
 const IconData cuteFallbackIcon = LucideIcons.appWindow;
